@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio MCMV — Daphne Ferreira Engenharia</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Firebase v9 compat — Realtime Database (já criado e funcionando) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyBN3MC65mQmKWa720WCPjQF9bvubDTe82w",
+  authDomain:"studiomcmv2026.firebaseapp.com",
+  databaseURL:"https://studiomcmv2026-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"studiomcmv2026",
+  storageBucket:"studiomcmv2026.firebasestorage.app",
+  messagingSenderId:"609161123761",
+  appId:"1:609161123761:web:333b2c4e82cbf425ad4f90"
+});
+const _auth = firebase.auth();
+const _rtdb = firebase.database();
+
+window._signIn  = function(e,p){ return _auth.signInWithEmailAndPassword(e,p); };
+window._signOut = function(){ return _auth.signOut(); };
+window._saveClient = function(data){
+  return _rtdb.ref('clientes/' + data.id).set(data);
+};
+window._deleteClient = function(id){
+  return _rtdb.ref('clientes/' + id).remove();
+};
+window._listenClients = function(cb){
+  var ref = _rtdb.ref('clientes');
+  ref.on('value', function(snap){
+    var list = [];
+    snap.forEach(function(child){ list.push(child.val()); });
+    cb(list);
+  });
+  return function(){ ref.off(); };
+};
+
+function _onAuthReady(){
+  _auth.onAuthStateChanged(function(user){
+    window._fbUser = user;
+    var ls = document.getElementById('loading-screen');
+    var li = document.getElementById('login-screen');
+    var ap = document.getElementById('app-root');
+    if(ls) ls.style.display = 'none';
+    if(user){
+      if(li) li.style.display = 'none';
+      if(ap) ap.style.display = 'block';
+      if(window._initApp) window._initApp();
+    } else {
+      if(li) li.style.display = 'flex';
+      if(ap) ap.style.display = 'none';
+    }
+  });
+}
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', _onAuthReady);
+} else {
+  _onAuthReady();
+}
+</script>
+<style>
+/* ══════════════════════════════════
+   TOKENS
+══════════════════════════════════ */
+:root{
+  --o1:#2b3610;--o2:#3e5018;--o3:#556c22;--o4:#6e8a2e;--o5:#8aaa3c;
+  --o6:#aac855;--o7:#c8de88;--o8:#e0ecb8;--o9:#f2f8e0;
+  --c1:#faf6eb;--c2:#f0e9d4;--c3:#e0d0b0;--c4:#ccba8c;--c5:#b0a070;
+  --t1:#18160a;--t2:#38320e;--t3:#6a5e30;--t4:#9a8e60;
+  --am:#9a6e08;--rd:#7a2810;--bl:#1a3060;--gr:#1a6030;
+  --sh:0 2px 16px rgba(20,18,4,.10);
+  --sh2:0 6px 40px rgba(20,18,4,.16);
+  --r:6px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px;scroll-behavior:smooth}
+body{font-family:'Jost',sans-serif;background:var(--c2);color:var(--t1);min-height:100vh}
+
+/* ══ LOGIN SCREEN ══ */
+#login-screen{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;background:var(--o1);
+  background-image:radial-gradient(ellipse at 30% 40%,rgba(110,138,46,.25) 0%,transparent 60%),
+    radial-gradient(ellipse at 70% 70%,rgba(43,54,16,.6) 0%,transparent 50%);
+}
+.login-box{
+  background:var(--c1);border-radius:12px;
+  padding:40px 36px 32px;width:100%;max-width:380px;
+  box-shadow:0 12px 60px rgba(0,0,0,.4);
+  display:flex;flex-direction:column;align-items:center;gap:0;
+}
+.login-logo{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.6rem;color:var(--o1);font-weight:700;
+  text-align:center;line-height:1.2;margin-bottom:4px;
+}
+.login-logo span{color:var(--o3);font-style:italic;display:block;font-size:1rem;letter-spacing:.06em}
+.login-divider{width:48px;height:3px;background:linear-gradient(90deg,var(--o3),var(--o6));border-radius:99px;margin:14px 0 24px}
+.login-field{width:100%;display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.login-field label{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--o2);font-weight:700}
+.login-field input{
+  font-family:'Jost',sans-serif;font-size:.9rem;color:var(--t1);
+  background:var(--c2);border:1.5px solid var(--c3);border-radius:6px;
+  padding:10px 13px;outline:none;transition:all .18s;width:100%;
+}
+.login-field input:focus{background:#fff;border-color:var(--o4);box-shadow:0 0 0 3px rgba(110,138,46,.12)}
+.login-btn{
+  width:100%;font-family:'Jost',sans-serif;font-weight:700;font-size:.88rem;
+  letter-spacing:.07em;background:var(--o2);color:var(--c1);
+  border:none;border-radius:6px;padding:11px;cursor:pointer;
+  transition:all .18s;margin-top:6px;
+}
+.login-btn:hover{background:var(--o3)}
+.login-btn:disabled{opacity:.6;cursor:not-allowed}
+.login-err{
+  font-size:.74rem;color:#8a2010;background:#fde8e4;
+  border:1px solid #f0b0a0;border-radius:5px;
+  padding:8px 12px;width:100%;text-align:center;
+  margin-top:10px;display:none;
+}
+.login-footer{font-size:.65rem;color:var(--t4);margin-top:18px;text-align:center;line-height:1.6}
+#app-root{display:none}
+
+/* ══ SCREENS ══ */
+.screen{display:none!important}
+.screen.active{display:block!important}
+
+/* ══ TOP NAV ══ */
+.topnav{
+  background:var(--o1);height:52px;
+  display:flex;align-items:center;padding:0 20px;gap:0;
+  position:sticky;top:0;z-index:500;
+  box-shadow:0 3px 16px rgba(0,0,0,.35);
+}
+.brand{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.1rem;color:var(--c1);font-weight:700;letter-spacing:.04em;
+  padding-right:20px;border-right:1px solid rgba(255,255,255,.12);
+  white-space:nowrap;line-height:1.2;
+}
+.brand span{color:var(--o6);font-style:italic;display:block;font-size:.72rem;letter-spacing:.06em}
+.ntabs{display:flex;gap:1px;padding-left:12px;flex:1;height:52px}
+.ntab{
+  font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--o7);padding:0 14px;height:52px;
+  display:flex;align-items:center;gap:6px;cursor:pointer;
+  border:none;border-bottom:3px solid transparent;background:none;
+  font-family:'Jost',sans-serif;transition:all .15s;white-space:nowrap;
+}
+.ntab:hover{color:var(--c1);background:rgba(255,255,255,.05)}
+.ntab.on{color:var(--c1);border-bottom-color:var(--o6)}
+.ntab .ico{font-size:.9rem}
+.nav-right{margin-left:auto;display:flex;gap:7px;align-items:center}
+
+/* ══ BUTTONS ══ */
+.btn{
+  font-family:'Jost',sans-serif;font-weight:600;font-size:.72rem;
+  letter-spacing:.06em;border:none;border-radius:var(--r);
+  padding:7px 14px;cursor:pointer;transition:all .18s;
+  display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+}
+.btn-p{background:var(--o4);color:#fff}.btn-p:hover{background:var(--o5)}
+.btn-g{background:transparent;color:var(--o7);border:1px solid rgba(255,255,255,.2)}.btn-g:hover{background:rgba(255,255,255,.07)}
+.btn-o{background:var(--o2);color:var(--c1)}.btn-o:hover{background:var(--o3)}
+.btn-d{background:#5a1208;color:#ffd8d0}.btn-d:hover{background:#7a2010}
+.btn-a{background:#6a4a08;color:#ffe8a0}.btn-a:hover{background:#8a6210}
+.btn-bl{background:#1a2860;color:#d0d8ff}.btn-bl:hover{background:#243888}
+.btn-sm{padding:4px 10px;font-size:.65rem}
+.btn-xs{padding:3px 8px;font-size:.6rem}
+
+/* ══ PAGE HERO ══ */
+.hero{background:var(--o1);padding:24px 28px 20px}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:1.6rem;color:var(--c1);font-weight:700;letter-spacing:.02em}
+.hero p{font-size:.74rem;color:var(--o7);margin-top:3px;letter-spacing:.06em}
+.hero-row{margin-top:14px;display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.search{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:var(--r);padding:6px 13px;color:var(--c1);font-family:'Jost',sans-serif;font-size:.78rem;outline:none;width:240px;transition:all .2s}
+.search::placeholder{color:rgba(255,255,255,.4)}
+.search:focus{background:rgba(255,255,255,.15);border-color:var(--o7)}
+
+/* ══ CARDS GRID ══ */
+.cgrid{padding:20px 28px;display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+.ccard{background:var(--c1);border:1px solid var(--c3);border-radius:8px;overflow:hidden;box-shadow:var(--sh);transition:all .2s;cursor:pointer}
+.ccard:hover{box-shadow:var(--sh2);transform:translateY(-2px);border-color:var(--o7)}
+.ccard-top{background:var(--o2);padding:11px 15px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.ccard-top h3{font-family:'Cormorant Garamond',serif;font-size:.98rem;color:var(--c1);font-weight:600;line-height:1.3}
+.ccard-top .cn{font-size:.6rem;color:var(--o7);margin-top:2px;letter-spacing:.05em}
+.stbadge{font-size:.58rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;border-radius:99px;flex-shrink:0}
+.st-draft{background:rgba(255,255,255,.15);color:var(--o7)}
+.st-sent{background:rgba(196,210,100,.25);color:var(--o6)}
+.st-signed{background:rgba(80,160,80,.3);color:#90e890}
+.st-exec{background:rgba(26,58,96,.35);color:#90b8f8}
+.st-done{background:rgba(80,160,80,.45);color:#c0ffc0}
+.st-rej{background:rgba(160,50,30,.3);color:#ffb090}
+.ccard-body{padding:10px 15px}
+.crow{display:flex;gap:6px;font-size:.73rem;color:var(--t3);margin-bottom:3px;align-items:flex-start}
+.crow strong{color:var(--t2);min-width:60px;flex-shrink:0}
+.cpills{display:flex;gap:3px;flex-wrap:wrap;margin-top:7px}
+.cpill{font-size:.56rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:99px;background:var(--o8);color:var(--o2)}
+.ccard-foot{padding:9px 15px;border-top:1px solid var(--c3);display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.attach-info{margin-left:auto;font-size:.6rem;font-weight:600;padding:2px 7px;border-radius:99px}
+.ai-none{background:var(--c2);color:var(--t4)}
+.ai-some{background:rgba(26,90,40,.15);color:#1a6028}
+.empty{grid-column:1/-1;text-align:center;padding:60px 20px;font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--t4);font-style:italic}
+
+/* ══ PROGRESS BAR ══ */
+.progbar{height:4px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden;margin-top:8px}
+.progfill{height:100%;background:linear-gradient(90deg,var(--o5),var(--o7));border-radius:99px;transition:width .4s}
+
+/* ══ EDITOR LAYOUT ══ */
+.edlay{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 52px)}
+.epanel{background:var(--o1);display:flex;flex-direction:column;position:sticky;top:52px;height:calc(100vh - 52px)}
+.eph{padding:15px 20px 12px;border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0}
+.eph h2{font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--c1);font-weight:600}
+.eph p{font-size:.65rem;color:var(--o7);margin-top:2px;letter-spacing:.04em}
+.epscroll{overflow-y:auto;flex:1;padding:14px 20px 24px}
+.epfoot{padding:10px 20px;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.epreview{background:var(--c2);padding:24px 24px 60px;overflow-y:auto}
+.prev-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:400px;gap:10px;color:var(--t4);font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.95rem}
+
+/* ══ FORM HELPERS ══ */
+.fsec{margin-bottom:16px}
+.fsl{font-size:.58rem;text-transform:uppercase;letter-spacing:.12em;color:var(--o6);font-weight:700;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:5px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 8px}
+.fr{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.fr label{font-size:.6rem;color:var(--o7);letter-spacing:.05em;font-weight:500}
+.fr input,.fr textarea,.fr select{font-family:'Jost',sans-serif;font-size:.78rem;color:var(--t1);background:rgba(255,255,255,.88);border:1.5px solid rgba(255,255,255,.12);border-radius:5px;padding:5px 8px;outline:none;transition:all .15s}
+.fr input:focus,.fr textarea:focus,.fr select:focus{background:#fff;border-color:var(--o6)}
+.fr textarea{resize:vertical;min-height:46px}
+.fr.full,.fg .fr.full{grid-column:1/-1}
+
+/* ══ PHASE TOGGLES ══ */
+.ptog{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:7px;padding:8px 11px;cursor:pointer;transition:all .15s;margin-bottom:6px}
+.ptog:hover{background:rgba(255,255,255,.08)}
+.ptog.on{background:rgba(196,210,100,.12);border-color:var(--o6)}
+.ptog-h{display:flex;align-items:center;gap:8px}
+.pchk{width:16px;height:16px;border:2px solid rgba(255,255,255,.25);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:transparent;flex-shrink:0;transition:all .15s}
+.ptog.on .pchk{background:var(--o5);border-color:var(--o5);color:#fff}
+.pnm{font-size:.75rem;color:var(--c1);font-weight:500;flex:1;line-height:1.3}
+.ptag{font-size:.56rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:2px 6px;border-radius:99px}
+.tbase{background:rgba(196,210,100,.2);color:var(--o6)}
+.topt{background:rgba(160,110,8,.25);color:#c8a030}
+.tdef{background:rgba(255,255,255,.1);color:var(--o7)}
+.pvals{margin-top:7px;display:none;flex-direction:column;gap:4px}
+.ptog.on .pvals{display:flex}
+.pvrow{display:flex;align-items:center;gap:5px}
+.pvrow label{font-size:.6rem;color:var(--o7);min-width:82px;text-align:right;flex-shrink:0}
+.pvrow .cur{color:var(--o5);font-size:.72rem;font-weight:700}
+.pvrow input{font-family:'Jost',sans-serif;font-size:.76rem;color:var(--t1);background:rgba(255,255,255,.85);border:1.5px solid rgba(255,255,255,.1);border-radius:4px;padding:4px 7px;outline:none;flex:1;transition:all .15s}
+.pvrow input:focus{background:#fff;border-color:var(--o6)}
+
+/* ══ PARCELAS ══ */
+.parc-list{display:flex;flex-direction:column;gap:6px;margin-bottom:7px}
+.parc-item{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px 10px;position:relative}
+.parc-item .plbl{font-size:.57rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--o6);margin-bottom:5px}
+.parc-item .rm{position:absolute;top:6px;right:7px;background:none;border:none;color:rgba(255,255,255,.28);cursor:pointer;font-size:.8rem;padding:2px 4px;border-radius:3px;transition:all .13s}
+.parc-item .rm:hover{color:#ff9080;background:rgba(180,50,30,.2)}
+.add-parc{font-family:'Jost',sans-serif;font-size:.68rem;font-weight:600;color:var(--o7);background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.18);border-radius:5px;padding:5px 10px;cursor:pointer;width:100%;transition:all .15s;letter-spacing:.05em}
+.add-parc:hover{background:rgba(255,255,255,.1);border-color:var(--o6)}
+
+/* ══ DOCUMENT STYLES ══ */
+.doc{max-width:780px;margin:0 auto;background:#fff;box-shadow:var(--sh2);font-family:'Jost',sans-serif;color:var(--t1)}
+.dh{background:var(--o1);padding:22px 28px 16px;display:flex;justify-content:space-between;align-items:flex-end;gap:14px}
+.dh-l h2{font-family:'Cormorant Garamond',serif;font-size:1.35rem;color:var(--c1);font-weight:700;letter-spacing:.02em}
+.dh-l .dsub{font-size:.65rem;color:var(--o7);margin-top:3px;letter-spacing:.07em}
+.dh-r{text-align:right}
+.dbadge{background:var(--o3);color:#fff;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:3px;display:inline-block;margin-bottom:4px}
+.dmeta{font-size:.65rem;color:var(--o8);line-height:1.9}
+.dstripe{height:4px;background:linear-gradient(90deg,var(--o3),var(--o6),var(--o8),var(--o6),var(--o3))}
+.dbody{padding:20px 28px 0}
+.dcli{background:var(--c1);border:1px solid var(--c3);border-left:4px solid var(--o3);border-radius:0 5px 5px 0;padding:11px 14px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 16px}
+.dci{display:flex;flex-direction:column;gap:1px}
+.dci.full{grid-column:1/-1}
+.dcil{font-size:.56rem;text-transform:uppercase;letter-spacing:.1em;color:var(--o3);font-weight:700}
+.dciv{font-size:.8rem;font-weight:600;color:var(--t1);line-height:1.3}
+.dsec{margin-bottom:14px}
+.dstit{font-family:'Cormorant Garamond',serif;font-size:.88rem;font-weight:700;color:var(--c1);background:var(--o2);padding:5px 12px;border-radius:4px;margin-bottom:8px;letter-spacing:.04em;display:flex;align-items:center;gap:6px}
+.dstit .sn{background:var(--o1);color:var(--o6);font-size:.65rem;font-family:'Jost',sans-serif;font-weight:700;padding:1px 6px;border-radius:3px}
+.roadmap{display:flex;flex-wrap:nowrap;overflow:hidden;margin-bottom:9px}
+.rmst{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;padding-bottom:3px}
+.rmst:not(:last-child)::after{content:'→';position:absolute;top:9px;right:-7px;font-size:.6rem;color:var(--c3);z-index:1}
+.rmd{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;margin-bottom:3px;flex-shrink:0}
+.rmd.a{background:var(--o2);color:var(--c1);border:2px solid var(--o2)}
+.rmd.i{background:var(--c2);color:var(--t4);border:2px solid var(--c3)}
+.rml{font-size:.54rem;text-align:center;line-height:1.35;max-width:68px}
+.rml.a{color:var(--o2);font-weight:600}.rml.i{color:var(--t4)}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sc{background:var(--c1);border:1px solid var(--c3);border-radius:5px;padding:10px 12px}
+.sc h4{font-size:.65rem;font-weight:700;color:var(--o2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid var(--c3)}
+.sc ul{list-style:none;padding:0}
+.sc ul li{font-size:.7rem;color:var(--t2);line-height:1.5;padding-left:10px;position:relative;margin-bottom:1px}
+.sc ul li::before{content:'◆';position:absolute;left:0;font-size:.38rem;color:var(--o5);top:4px}
+.sc.warn{border-color:#dca880;background:#fdf5ec}
+.sc.warn h4{color:#8a4018}
+.sc.inact{opacity:.45;border-style:dashed}
+.sc.inact h4{color:var(--t4)}
+.itbl{width:100%;border-collapse:collapse;font-size:.76rem}
+.itbl th{font-size:.58rem;text-transform:uppercase;letter-spacing:.09em;color:var(--t4);padding:5px 8px;text-align:left;font-weight:600;border-bottom:2px solid var(--c3)}
+.itbl td{padding:6px 8px;border-bottom:1px solid var(--c2);vertical-align:top}
+.itbl tr:last-child td{border-bottom:none}
+.itbl .vn{font-weight:600;color:var(--o2)}
+.itbl .va{font-weight:700;color:var(--o2);white-space:nowrap;text-align:right}
+.itbl .vd{font-size:.67rem;color:var(--t3);margin-top:2px;line-height:1.4}
+.trow td{background:var(--o1);color:var(--c1);font-weight:700;font-size:.82rem;border-bottom:none}
+.trow .va{color:var(--o6);font-size:.92rem}
+.payrow{display:flex;gap:6px;flex-wrap:wrap}
+.paybox{flex:1;min-width:82px;background:var(--c1);border:1px solid var(--c3);border-radius:5px;padding:8px 9px;text-align:center}
+.paypct{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:700;color:var(--o3);line-height:1}
+.paymom{font-size:.62rem;font-weight:600;color:var(--t2);margin-top:2px;line-height:1.3}
+.paydesc{font-size:.58rem;color:var(--t4);margin-top:1px;line-height:1.3}
+.dlrow{display:flex;gap:6px}
+.dlb{flex:1;background:var(--c1);border:1px solid var(--c3);border-radius:5px;padding:7px 10px}
+.dbl{font-size:.56rem;text-transform:uppercase;letter-spacing:.08em;color:var(--o3);font-weight:700;margin-bottom:2px}
+.dbv{font-size:.78rem;font-weight:600;color:var(--t1)}
+.obsbox{background:var(--o9);border:1px dashed var(--o6);border-radius:5px;padding:8px 12px;font-size:.7rem;color:var(--t2);line-height:1.65}
+.obsbox ul{list-style:none;padding:0}
+.obsbox li{padding-left:12px;position:relative;margin-bottom:2px}
+.obsbox li::before{content:'◆';position:absolute;left:0;font-size:.38rem;color:var(--o5);top:4px}
+.valstrip{background:var(--o8);border-radius:5px;padding:6px 12px;font-size:.72rem;color:var(--o1);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.signgrid{display:grid;grid-template-columns:1fr 1fr;gap:28px;padding-top:12px;border-top:1px solid var(--c3)}
+.signblk{text-align:center}
+.signline{border-top:1.5px solid var(--t1);margin:40px 12px 5px}
+.signname{font-size:.78rem;font-weight:600}
+.signrole{font-size:.65rem;color:var(--t3);margin-top:1px}
+.dfooter{padding:8px 28px;background:var(--o1);display:flex;justify-content:space-between;font-size:.62rem;color:var(--o7);margin-top:14px}
+
+/* ══ DOSSIÊ / CLIENT VIEW ══ */
+.doslay{max-width:1100px;margin:0 auto;padding:22px 24px 50px}
+.dos-head{background:var(--o1);border-radius:8px;padding:18px 22px;margin-bottom:18px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.dos-head h2{font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--c1);font-weight:700}
+.dos-head p{font-size:.68rem;color:var(--o7);margin-top:2px}
+.dos-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.dos-grid.full{grid-template-columns:1fr}
+.dc{background:var(--c1);border:1px solid var(--c3);border-radius:8px;padding:15px 18px;box-shadow:var(--sh)}
+.dc h3{font-family:'Cormorant Garamond',serif;font-size:.9rem;font-weight:700;color:var(--o2);margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--c3);display:flex;align-items:center;gap:6px}
+.irow{display:flex;gap:7px;font-size:.75rem;margin-bottom:5px;align-items:flex-start}
+.irow strong{color:var(--t2);min-width:76px;flex-shrink:0;font-weight:600}
+.irow span{color:var(--t3);line-height:1.4}
+.ssel{width:100%;font-family:'Jost',sans-serif;font-size:.78rem;padding:6px 9px;border:1.5px solid var(--c3);border-radius:5px;background:var(--c1);color:var(--t1);outline:none;cursor:pointer;transition:border-color .15s}
+.ssel:focus{border-color:var(--o4)}
+.nta{width:100%;font-family:'Jost',sans-serif;font-size:.76rem;padding:7px 9px;border:1.5px solid var(--c3);border-radius:5px;background:var(--c1);color:var(--t1);outline:none;resize:vertical;min-height:70px;transition:border-color .15s}
+.nta:focus{border-color:var(--o4)}
+
+/* ══ FILE MANAGER ══ */
+.fmgr{margin-top:0}
+.fcat{margin-bottom:14px}
+.fcat-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.fcat-h h4{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--o2)}
+.flist{display:flex;flex-direction:column;gap:6px}
+.fitem{display:flex;align-items:center;gap:10px;background:var(--c2);border:1px solid var(--c3);border-radius:5px;padding:7px 11px;transition:all .15s}
+.fitem:hover{border-color:var(--o5);background:var(--o9)}
+.fitem .fi-ico{font-size:1.1rem;flex-shrink:0}
+.fitem .fi-info{flex:1;min-width:0}
+.fitem .fi-name{font-size:.76rem;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fitem .fi-meta{font-size:.62rem;color:var(--t4);margin-top:1px}
+.fitem .fi-acts{display:flex;gap:4px;flex-shrink:0}
+.upload-zone{border:2px dashed var(--c4);border-radius:7px;padding:16px;text-align:center;cursor:pointer;transition:all .2s;background:var(--c2)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--o4);background:var(--o9)}
+.upload-zone .uz-ico{font-size:1.4rem;margin-bottom:5px}
+.upload-zone .uz-txt{font-size:.74rem;color:var(--t3);line-height:1.5}
+.upload-zone .uz-txt strong{color:var(--o2)}
+
+/* ══ CHECKLIST ══ */
+.clwrap{max-width:1000px;margin:0 auto;padding:22px 24px 50px}
+.cl-topbar{background:var(--o1);border-radius:8px;padding:16px 20px;margin-bottom:16px}
+.cl-topbar-inner{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:10px;flex-wrap:wrap}
+.cl-topbar h2{font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:var(--c1);font-weight:700}
+.cl-prog{display:flex;align-items:center;gap:10px}
+.cl-prog span{font-family:'Cormorant Garamond',serif;font-size:.95rem;color:var(--c1)}
+.cl-stage{background:var(--c1);border:1px solid var(--c3);border-radius:8px;margin-bottom:12px;overflow:hidden;box-shadow:var(--sh)}
+.cl-sh{display:flex;align-items:center;gap:11px;padding:11px 16px;background:var(--o9);border-bottom:1px solid var(--c3);cursor:pointer;user-select:none}
+.cl-snum{font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:700;color:var(--o1);background:var(--o7);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cl-stit{font-family:'Cormorant Garamond',serif;font-size:.88rem;font-weight:700;color:var(--o1);flex:1;letter-spacing:.02em}
+.cl-spill{font-size:.58rem;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:.07em;text-transform:uppercase;flex-shrink:0}
+.pill-pend{background:var(--c3);color:var(--t3)}
+.pill-part{background:#fde090;color:#7a5000}
+.pill-done{background:#c8ecc0;color:#1a5010}
+.cl-chev{color:var(--o4);font-size:.76rem;transition:transform .2s;flex-shrink:0}
+.cl-stage.coll .cl-chev{transform:rotate(-90deg)}
+.cl-body{padding:0 16px 12px}
+.cl-stage.coll .cl-body{display:none}
+.cl-meta{display:flex;gap:12px;padding:10px 0 9px;border-bottom:1px dashed var(--c3);flex-wrap:wrap;align-items:flex-end}
+.cl-mf{display:flex;flex-direction:column;gap:3px}
+.cl-mf label{font-size:.58rem;text-transform:uppercase;letter-spacing:.09em;color:var(--o3);font-weight:700}
+.cl-mf input,.cl-mf select{font-family:'Jost',sans-serif;font-size:.76rem;color:var(--t1);background:var(--c2);border:1.5px solid var(--c3);border-radius:4px;padding:4px 8px;outline:none;transition:border-color .15s}
+.cl-mf input:focus,.cl-mf select:focus{border-color:var(--o4)}
+.cl-mf.obs{flex:1;min-width:180px}
+.cl-mf.obs input{width:100%}
+.itable{width:100%;border-collapse:collapse;font-size:.78rem;margin-top:9px}
+.itable thead tr{border-bottom:2px solid var(--c3)}
+.itable thead th{font-size:.58rem;text-transform:uppercase;letter-spacing:.09em;color:var(--t4);padding:5px 7px;text-align:left;font-weight:600}
+.itable thead th:first-child{width:32px}
+.itable thead th.thp{width:130px}
+.itr{border-bottom:1px solid #ede6d2;transition:background .12s}
+.itr:last-child{border-bottom:none}
+.itr:hover{background:var(--o9)}
+.itr.done{opacity:.6}
+.itr.done .ilbl{text-decoration:line-through;color:var(--t4)}
+.itr.warn .ilbl::after{content:' ⚠️';font-size:.65rem}
+.itr.crit .ilbl{color:var(--rd);font-weight:600}
+.itr td{padding:6px 7px;vertical-align:middle}
+.chkw{display:flex;align-items:center;justify-content:center}
+.chkw input[type=checkbox]{accent-color:var(--o3);width:15px;height:15px;cursor:pointer}
+.ilbl{color:var(--t1);line-height:1.4}
+.itr input[type=date],.itr input[type=text]{font-family:'Jost',sans-serif;font-size:.74rem;color:var(--t1);background:transparent;border:1px solid transparent;border-radius:4px;padding:3px 6px;outline:none;width:100%;transition:all .13s}
+.itr input:focus,.itr input:hover{background:var(--c2);border-color:var(--c3)}
+.cl-stage.crit-sec .cl-sh{background:#fce8e4;border-bottom-color:#f0b8a8}
+.cl-stage.crit-sec .cl-snum{background:#f0b8a8;color:var(--rd)}
+.cl-stage.crit-sec .cl-stit{color:var(--rd)}
+
+/* ══ VISIT FORM ══ */
+.vfwrap{max-width:900px;margin:0 auto;padding:22px 24px 50px}
+.vf-list{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+.vf-card{background:var(--c1);border:1px solid var(--c3);border-radius:7px;overflow:hidden;box-shadow:var(--sh)}
+.vf-ch{display:flex;align-items:center;gap:12px;padding:10px 15px;background:var(--o9);border-bottom:1px solid var(--c3);cursor:pointer}
+.vf-ch h4{font-family:'Cormorant Garamond',serif;font-size:.9rem;font-weight:700;color:var(--o1);flex:1}
+.vf-ch .vf-date{font-size:.65rem;color:var(--t3)}
+.vf-ch .vf-status{font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.07em}
+.vfs-ok{background:#c8ecc0;color:#1a5010}
+.vfs-pend{background:#fde090;color:#7a5000}
+.vfs-crit{background:#fdc0a0;color:#6a2000}
+.vf-body{padding:14px 16px}
+.vf-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px 16px;margin-bottom:12px}
+.vf-field{display:flex;flex-direction:column;gap:3px}
+.vf-field label{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--o3);font-weight:700}
+.vf-field input,.vf-field select,.vf-field textarea{font-family:'Jost',sans-serif;font-size:.78rem;color:var(--t1);background:var(--c2);border:1.5px solid var(--c3);border-radius:5px;padding:5px 8px;outline:none;transition:border-color .15s}
+.vf-field input:focus,.vf-field select:focus,.vf-field textarea:focus{border-color:var(--o4)}
+.vf-field textarea{resize:vertical;min-height:56px}
+.vf-field.full{grid-column:1/-1}
+.vf-field.half{grid-column:span 2}
+.vf-checks{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.vf-check{display:flex;align-items:center;gap:7px;background:var(--c2);border:1px solid var(--c3);border-radius:5px;padding:6px 10px;cursor:pointer;transition:all .15s}
+.vf-check:hover{border-color:var(--o5)}
+.vf-check input[type=checkbox]{accent-color:var(--o3);width:14px;height:14px}
+.vf-check.checked{background:var(--o9);border-color:var(--o6)}
+.vf-check label{font-size:.73rem;color:var(--t2);cursor:pointer;line-height:1.3}
+.vf-photos{display:flex;gap:8px;flex-wrap:wrap}
+.vf-photo{width:80px;height:80px;border-radius:5px;overflow:hidden;border:1px solid var(--c3);position:relative}
+.vf-photo img{width:100%;height:100%;object-fit:cover}
+.vf-photo .del{position:absolute;top:2px;right:2px;background:rgba(100,10,0,.7);color:#fff;border:none;border-radius:3px;font-size:.55rem;padding:1px 4px;cursor:pointer}
+.add-photo-btn{width:80px;height:80px;border:2px dashed var(--c4);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;background:var(--c2);font-size:.6rem;color:var(--t4);gap:3px}
+.add-photo-btn:hover{border-color:var(--o4);background:var(--o9)}
+
+/* ══ REPORT MODAL ══ */
+.rel-modal{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.65);flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.rel-modal-box{background:var(--c2);border-radius:10px;overflow:hidden;width:100%;max-width:860px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 8px 60px rgba(0,0,0,.4)}
+.rel-modal-head{background:var(--o1);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0}
+.rel-modal-head h3{font-family:'Cormorant Garamond',serif;font-size:.95rem;color:var(--c1);font-weight:700;letter-spacing:.03em}
+.rel-modal-actions{display:flex;gap:7px}
+.rel-modal-body{flex:1;overflow:hidden;background:#fff}
+.rel-modal-body iframe{width:100%;height:100%;border:none;display:block;min-height:500px}
+
+/* ══ PRINT ══ */
+@media print{
+  .topnav,.epanel,.nav-right,#screen-clients,#screen-dossie,#screen-checklist,#screen-visita,.epfoot,#prev-empty{display:none!important}
+  body{background:#fff}
+  .edlay{display:block}
+  .epreview{padding:0;background:#fff}
+  .doc{box-shadow:none;max-width:100%}
+  #screen-editor{display:block!important}
+  @page{size:A4;margin:9mm 11mm}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">Studio MCMV<span>Daphne Ferreira Engenharia</span></div>
+    <div class="login-divider"></div>
+    <div class="login-field">
+      <label>E-mail</label>
+      <input type="email" id="l-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Entrar no Studio</button>
+    <div class="login-err" id="login-err"></div>
+    <div class="login-footer">🔒 Acesso restrito · Studio MCMV © 2026<br>Daphne Ferreira Engenharia</div>
+  </div>
+</div>
+
+<!-- ══ LOADING ══ -->
+<div id="loading-screen" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#2b3610;flex-direction:column;gap:14px">
+  <div style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:#faf6eb;font-weight:700;letter-spacing:.04em">Studio MCMV</div>
+  <div style="font-size:.75rem;color:#aac855;letter-spacing:.1em">Daphne Ferreira Engenharia</div>
+  <div style="margin-top:10px;width:40px;height:40px;border:3px solid rgba(170,200,85,.2);border-top-color:#aac855;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+</div>
+
+<!-- ══ APP ROOT ══ -->
+<div id="app-root" style="display:none">
+
+<!-- ══════════ NAV ══════════ -->
+<nav class="topnav">
+  <div class="brand">Studio MCMV<span>Daphne Ferreira Engenharia</span></div>
+  <div class="ntabs">
+    <button class="ntab on" id="nt-clients" onclick="goTo('clients')"><span class="ico">🏘</span>Clientes</button>
+    <button class="ntab" id="nt-editor"  onclick="newProposal()"><span class="ico">📋</span>Proposta</button>
+    <button class="ntab" id="nt-dossie"  onclick="goTo('dossie')" style="display:none"><span class="ico">📁</span>Dossiê</button>
+    <button class="ntab" id="nt-checklist" onclick="goTo('checklist')" style="display:none"><span class="ico">✅</span>Checklist</button>
+    <button class="ntab" id="nt-visita"  onclick="goTo('visita')" style="display:none"><span class="ico">🔍</span>Visitas</button>
+  </div>
+  <div class="nav-right">
+    <span id="ctx-label" style="font-size:.65rem;color:var(--o7);letter-spacing:.04em"></span>
+    <button class="btn btn-g btn-sm" onclick="window.print()" id="btn-pdf" style="display:none">🖨 PDF</button>
+    <button class="btn btn-g btn-sm" onclick="doLogout()" title="Sair">⏻ Sair</button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════
+     SCREEN: CLIENTS
+══════════════════════════════ -->
+<div class="screen active" id="screen-clients">
+  <div class="hero">
+    <h1>Banco de Clientes</h1>
+    <p>Propostas · Contratos · Checklists · Visitas</p>
+    <div class="hero-row">
+      <button class="btn btn-p" onclick="newProposal()">+ Nova Proposta</button>
+      <input class="search" id="srch" placeholder="🔍  Buscar cliente ou proposta…" oninput="renderClients()">
+    </div>
+  </div>
+  <div class="cgrid" id="cgrid"></div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN: EDITOR
+══════════════════════════════ -->
+<div class="screen" id="screen-editor">
+  <div class="edlay">
+    <div class="epanel">
+      <div class="eph">
+        <h2 id="ed-title">Nova Proposta</h2>
+        <p id="ed-sub">Preencha os dados e selecione as fases</p>
+      </div>
+      <div class="epscroll">
+
+        <div class="fsec">
+          <div class="fsl">👷 Responsável Técnica</div>
+          <div class="fg">
+            <div class="fr full"><label>Nome</label><input id="fe" value="Daphne Ferreira"></div>
+            <div class="fr"><label>CREA</label><input id="fcrea" placeholder="12345-D/SP"></div>
+            <div class="fr"><label>Telefone</label><input id="ftel" placeholder="(16) 9 0000-0000"></div>
+            <div class="fr full"><label>E-mail</label><input id="femail" placeholder="email@dominio.com"></div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsl">📄 Proposta</div>
+          <div class="fg">
+            <div class="fr"><label>Nº Proposta</label><input id="fnum" placeholder="001/2025"></div>
+            <div class="fr"><label>Data</label><input type="date" id="fdata"></div>
+            <div class="fr full"><label>Validade</label><input id="fval" value="15 dias"></div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsl">👤 Cliente</div>
+          <div class="fg">
+            <div class="fr full"><label>Nome completo</label><input id="fcli" placeholder="Nome do cliente"></div>
+            <div class="fr"><label>CPF / CNPJ</label><input id="fcpf" placeholder="000.000.000-00"></div>
+            <div class="fr"><label>Telefone</label><input id="fctel" placeholder="(16) 9 0000-0000"></div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsl">🏠 Empreendimento</div>
+          <div class="fg">
+            <div class="fr full"><label>Endereço</label><input id="fend" placeholder="Rua, nº, bairro, cidade – UF"></div>
+            <div class="fr"><label>Área construída</label><input id="fac" value="~65 m²"></div>
+            <div class="fr"><label>Área terreno</label><input id="fat" value="275 m²"></div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsl">✅ Fases</div>
+          <div class="ptog" data-ph="1" onclick="tog(this)"><div class="ptog-h"><div class="pchk">✓</div><div class="pnm">Fase 1 — Projeto + Aprovação</div><span class="ptag tbase">Base</span></div><div class="pvals"><div class="pvrow"><label>Valor</label><span class="cur">R$</span><input type="number" id="v1" value="5500"></div></div></div>
+          <div class="ptog" data-ph="2" onclick="tog(this)"><div class="ptog-h"><div class="pchk">✓</div><div class="pnm">Fase 2 — Planejamento + Caixa</div><span class="ptag tbase">Base</span></div><div class="pvals"><div class="pvrow"><label>Valor</label><span class="cur">R$</span><input type="number" id="v2" value="3000"></div></div></div>
+          <div class="ptog" data-ph="3" onclick="tog(this)"><div class="ptog-h"><div class="pchk">✓</div><div class="pnm">Fase 3 — Complementares</div><span class="ptag tdef">A definir</span></div><div class="pvals"><div class="pvrow"><label>Valor/Obs</label><input type="text" id="v3" value="A ser definido"></div></div></div>
+          <div class="ptog" data-ph="4a" onclick="tog(this)"><div class="ptog-h"><div class="pchk">✓</div><div class="pnm">Fase 4A — Acomp. Técnico (sem exec.)</div><span class="ptag topt">Opcional</span></div><div class="pvals"><div class="pvrow"><label>Mensal/mês</label><span class="cur">R$</span><input type="number" id="v4am" value="1000"></div><div class="pvrow"><label>Visita avulsa</label><span class="cur">R$</span><input type="number" id="v4av" value="350"></div><div class="pvrow"><label>Obs.</label><input type="text" id="v4ao"></div></div></div>
+          <div class="ptog" data-ph="4b" onclick="tog(this)"><div class="ptog-h"><div class="pchk">✓</div><div class="pnm">Fase 4B — Acomp. c/ Resp. Técnica</div><span class="ptag topt">Opcional</span></div><div class="pvals"><div class="pvrow"><label>Valor</label><input type="text" id="v4b" placeholder="Sob consulta"></div><div class="pvrow"><label>Obs.</label><input type="text" id="v4bo"></div></div></div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsl">💳 Condições de Pagamento</div>
+          <div class="parc-list" id="parc-list"></div>
+          <button class="add-parc" onclick="addParc()">+ Adicionar parcela</button>
+        </div>
+
+        <div class="fsec">
+          <div class="fsl">📅 Prazos</div>
+          <div class="fg">
+            <div class="fr"><label>Estudo preliminar</label><input id="pz1" value="Até 07 dias"></div>
+            <div class="fr"><label>Projeto completo</label><input id="pz2" value="15 a 25 dias"></div>
+            <div class="fr full"><label>Aprovação</label><input id="pz3" value="Conforme órgão público"></div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <div class="fsl">📝 Observações</div>
+          <div class="fr"><textarea id="fobs" placeholder="Observações específicas…"></textarea></div>
+        </div>
+
+      </div>
+      <div class="epfoot">
+        <button class="btn btn-p" onclick="gerarProp()">⚡ Gerar Proposta</button>
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-o btn-sm" style="flex:1" onclick="salvar()">💾 Salvar</button>
+          <button class="btn btn-g btn-sm" onclick="goTo('clients')">← Clientes</button>
+        </div>
+      </div>
+    </div>
+    <div class="epreview" id="epreview">
+      <div class="prev-empty" id="prev-empty"><span style="font-size:2rem">📄</span>Preencha e clique em <strong style="color:var(--o3);font-style:normal">Gerar Proposta</strong></div>
+      <div id="docout" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN: DOSSIÊ
+══════════════════════════════ -->
+<div class="screen" id="screen-dossie">
+  <div class="doslay">
+    <div class="dos-head">
+      <div><h2 id="ds-title">–</h2><p id="ds-sub">–</p></div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <button class="btn btn-o btn-sm" onclick="editClient()">✏️ Editar Proposta</button>
+        <button class="btn btn-bl btn-sm" id="btn-cl" onclick="goTo('checklist')">✅ Checklist</button>
+        <button class="btn btn-a btn-sm" id="btn-vt" onclick="goTo('visita')">🔍 Visitas</button>
+        <button class="btn btn-g btn-sm" onclick="goTo('clients')">← Voltar</button>
+      </div>
+    </div>
+    <div class="dos-grid" style="margin-bottom:14px">
+      <div class="dc">
+        <h3>📋 Informações</h3>
+        <div id="ds-info"></div>
+      </div>
+      <div class="dc">
+        <h3>📊 Status do Processo</h3>
+        <div class="fr" style="margin-bottom:10px">
+          <label style="font-size:.62rem;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Status atual</label>
+          <select class="ssel" id="ds-status" onchange="saveDS()">
+            <option value="draft">📝 Rascunho</option>
+            <option value="sent">📤 Enviada</option>
+            <option value="negotiating">💬 Negociando</option>
+            <option value="signed">✅ Assinada</option>
+            <option value="rejected">❌ Recusada</option>
+            <option value="exec">🏗 Em execução</option>
+            <option value="done">🎉 Concluída</option>
+          </select>
+        </div>
+        <div class="fr">
+          <label style="font-size:.62rem;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Notas internas</label>
+          <textarea class="nta" id="ds-notes" oninput="saveDS()" placeholder="Anotações, negociação, histórico…"></textarea>
+        </div>
+        <!-- Checklist mini progress -->
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--c3)">
+          <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--t3);margin-bottom:4px">
+            <span>Progresso do Checklist</span>
+            <span id="ds-clprog">–</span>
+          </div>
+          <div class="progbar"><div class="progfill" id="ds-clfill" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILE MANAGER full width -->
+    <div class="dc" style="margin-bottom:0">
+      <h3>📎 Arquivos do Cliente</h3>
+      <div class="fmgr" id="fmgr">
+        <!-- rendered dynamically -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN: CHECKLIST
+══════════════════════════════ -->
+<div class="screen" id="screen-checklist">
+  <div class="clwrap">
+    <div class="cl-topbar">
+      <div class="cl-topbar-inner">
+        <div>
+          <h2>Checklist MCMV</h2>
+          <p style="font-size:.65rem;color:var(--o7);margin-top:2px" id="cl-cli-name">–</p>
+        </div>
+        <div class="cl-prog">
+          <span id="cl-count">0 / 0</span>
+          <button class="btn btn-g btn-sm" onclick="goTo('dossie')">← Dossiê</button>
+        </div>
+      </div>
+      <div class="progbar"><div class="progfill" id="cl-fill" style="width:0%"></div></div>
+    </div>
+    <div id="cl-stages"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN: VISITAS
+══════════════════════════════ -->
+<div class="screen" id="screen-visita">
+  <div class="vfwrap">
+    <div class="dos-head">
+      <div><h2>Formulários de Visita</h2><p id="vt-cli-name" style="font-size:.68rem;color:var(--o7)">–</p></div>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-p btn-sm" onclick="novaVisita()">+ Nova Visita</button>
+        <button class="btn btn-g btn-sm" onclick="goTo('dossie')">← Dossiê</button>
+      </div>
+    </div>
+    <div class="vf-list" id="vf-list"></div>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="rel-modal" id="rel-modal">
+  <div class="rel-modal-box">
+    <div class="rel-modal-head">
+      <h3>📄 Relatório de Visita Técnica</h3>
+      <div class="rel-modal-actions">
+        <button class="btn btn-p btn-sm" onclick="imprimirRelatorio()">🖨 Imprimir / PDF</button>
+        <button class="btn btn-o btn-sm" onclick="saveVFToFiles(parseInt(g('rel-modal').dataset.vi))">💾 Salvar em Arquivos</button>
+        <button class="btn btn-g btn-sm" onclick="fecharRelatorio()">✕ Fechar</button>
+      </div>
+    </div>
+    <div class="rel-modal-body" id="rel-modal-body"></div>
+  </div>
+</div>
+
+<!-- hidden file input -->
+<input type="file" id="file-in" style="display:none" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.dwg,.zip" onchange="handleFiles(event)">
+<input type="file" id="photo-in" style="display:none" accept="image/*" onchange="handlePhoto(event)">
+
+<script>
+/* ════════════════════════════
+   DB & STATE (Firebase)
+════════════════════════════ */
+let DB = [];
+let CUR = null;
+let parcelas = [];
+let currentFileCategory = '';
+let currentPhotoVisitId = '';
+let currentPhotoIdx = -1;
+let _unsubscribe = null;
+
+async function saveDB_client(client){
+  try {
+    await window._saveClient(client);
+    showToast('✅ Salvo na nuvem!');
+  } catch(e){
+    console.error('Firebase save error:', e);
+    showToast('⚠️ Erro ao salvar: '+e.message, 'error');
+  }
+}
+
+async function deleteFromDB(id){
+  try { await window._deleteClient(id); } catch(e){ console.error(e); }
+}
+function saveDB(){} // stub
+
+function getClient(){ return DB.find(x=>x.id===CUR) }
+function g(id){ return document.getElementById(id) }
+function fv(id){ return (g(id)||{}).value||'' }
+
+/* Toast */
+function showToast(msg, type='ok'){
+  let t=document.getElementById('toast'); if(!t){t=document.createElement('div');t.id='toast';document.body.appendChild(t)}
+  t.textContent=msg; t.style.cssText=`position:fixed;bottom:24px;right:24px;z-index:9999;font-family:Jost,sans-serif;font-size:.8rem;font-weight:600;padding:10px 18px;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.25);transition:opacity .3s;background:${type==='error'?'#7a2010':'#2a5a18'};color:#fff`
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),400)},2200)
+}
+
+/* Login / Logout */
+async function doLogin(){
+  const e=fv('l-email'), p=fv('l-pass')
+  if(!e||!p){showErr('Preencha e-mail e senha.');return}
+  const btn=g('login-btn'); btn.disabled=true; btn.textContent='Entrando…'
+  try {
+    await window._signIn(e,p)
+  } catch(err){
+    const msgs={'auth/invalid-credential':'E-mail ou senha incorretos.','auth/user-not-found':'Usuário não encontrado.','auth/wrong-password':'Senha incorreta.','auth/too-many-requests':'Muitas tentativas. Tente mais tarde.'}
+    showErr(msgs[err.code]||'Erro ao entrar. Tente novamente.')
+    btn.disabled=false; btn.textContent='Entrar no Studio'
+  }
+}
+function showErr(msg){ const el=g('login-err'); el.textContent=msg; el.style.display='block' }
+function doLogout(){ if(confirm('Sair do Studio MCMV?')) window._signOut() }
+
+/* ════════════════════════════
+   INIT APP (called after login)
+════════════════════════════ */
+window._initApp = function(){
+  if(_unsubscribe) _unsubscribe();
+  _unsubscribe = window._listenClients(function(list){
+    DB = list;
+    DB.sort(function(a,b){ return (b.updatedAt||'').localeCompare(a.updatedAt||''); });
+    renderClients();
+    if(CUR && getClient()){
+      if(document.getElementById('screen-dossie').classList.contains('active')) renderDossie();
+      if(document.getElementById('screen-checklist').classList.contains('active')) renderChecklist();
+      if(document.getElementById('screen-visita').classList.contains('active')) renderVisitas();
+    }
+  });
+  g('fdata').valueAsDate = new Date();
+  initParc();
+  goTo('clients');
+}
+
+/* ════════════════════════════
+   NAVIGATION
+════════════════════════════ */
+const SCREENS = ['clients','editor','dossie','checklist','visita'];
+function goTo(name){
+  SCREENS.forEach(s=>{ g('screen-'+s).classList.toggle('active', s===name) })
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'))
+  g('nt-'+(name==='clients'?'clients':name==='editor'?'editor':name==='dossie'||name==='checklist'||name==='visita'?'dossie':'clients'))?.classList.add('on')
+  g('btn-pdf').style.display = name==='editor' ? 'flex' : 'none'
+  // show/hide client-context tabs
+  const hasClient = !!CUR;
+  ['dossie','checklist','visita'].forEach(n=>{ g('nt-'+n).style.display = hasClient ? '' : 'none' })
+  if(name==='dossie') renderDossie()
+  if(name==='checklist') renderChecklist()
+  if(name==='visita') renderVisitas()
+  if(name==='clients') renderClients()
+  // context label
+  const cli = getClient()
+  g('ctx-label').textContent = cli ? cli.cli||'' : ''
+}
+
+/* ════════════════════════════
+   FORMAT HELPERS
+════════════════════════════ */
+function fmt(n){ return 'R$ '+parseFloat(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) }
+function fmtD(ds){ if(!ds) return '–'; return new Date(ds+'T12:00').toLocaleDateString('pt-BR') }
+function eid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6) }
+function fmtBytes(b){ if(b<1024) return b+' B'; if(b<1e6) return (b/1024).toFixed(1)+' KB'; return (b/1e6).toFixed(1)+' MB' }
+
+/* ════════════════════════════
+   CLIENTS SCREEN
+════════════════════════════ */
+const STLBL = {draft:'📝 Rascunho',sent:'📤 Enviada',negotiating:'💬 Negociando',signed:'✅ Assinada',rejected:'❌ Recusada',exec:'🏗 Em execução',done:'🎉 Concluída'}
+const STCLS = {draft:'st-draft',sent:'st-sent',signed:'st-signed',negotiating:'st-sent',rejected:'st-rej',exec:'st-exec',done:'st-done'}
+const PHLBL = {'1':'F1','2':'F2','3':'F3','4a':'F4A','4b':'F4B'}
+
+function renderClients(){
+  const q = (g('srch')?.value||'').toLowerCase()
+  const list = DB.filter(d=>!q||(d.cli||'').toLowerCase().includes(q)||(d.num||'').toLowerCase().includes(q)||(d.end||'').toLowerCase().includes(q))
+  if(!list.length){ g('cgrid').innerHTML='<div class="empty">'+(q?'Nenhum resultado para "'+q+'"':'Nenhuma proposta ainda. Clique em <strong>+ Nova Proposta</strong>.')+'</div>'; return }
+  const nfiles = d => Object.values(d.files||{}).flat().length
+  g('cgrid').innerHTML = list.map(d=>{
+    const nf = nfiles(d), nv=(d.visitas||[]).length
+    const phases=(d.phases||[]).map(p=>`<span class="cpill">${PHLBL[p]||p}</span>`).join('')
+    // checklist progress
+    let total=0,done=0
+    STAGES.forEach(st=>st.items.forEach((_,i)=>{ total++; if((d.cl||{})[`${st.id}_${i}`]==='1') done++ }))
+    const pct=total?Math.round(done/total*100):0
+    return `<div class="ccard" onclick="openClient('${d.id}')">
+      <div class="ccard-top">
+        <div><h3>${d.cli||'(sem nome)'}</h3><div class="cn">${d.num?'Nº '+d.num+' · ':''}${fmtD(d.data)}</div></div>
+        <span class="stbadge ${STCLS[d.status||'draft']}">${STLBL[d.status||'draft']||'–'}</span>
+      </div>
+      <div class="ccard-body">
+        <div class="crow"><strong>Terreno:</strong>${d.end||'–'}</div>
+        <div class="crow"><strong>Área:</strong>${d.ac||'–'} · terreno ${d.at||'–'}</div>
+        <div class="crow"><strong>Engenheira:</strong>${d.fe||'–'}</div>
+        <div class="cpills">${phases}</div>
+        <div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:.6rem;color:var(--t4);margin-bottom:3px"><span>Checklist</span><span>${done}/${total} (${pct}%)</span></div><div class="progbar"><div class="progfill" style="width:${pct}%"></div></div></div>
+      </div>
+      <div class="ccard-foot">
+        <button class="btn btn-o btn-xs" onclick="event.stopPropagation();editar('${d.id}')">✏️ Editar</button>
+        <button class="btn btn-p btn-xs" onclick="event.stopPropagation();verPDF('${d.id}')">📄 PDF</button>
+        <button class="btn btn-bl btn-xs" onclick="event.stopPropagation();openClient('${d.id}')">📁 Dossiê</button>
+        <button class="btn btn-d btn-xs" onclick="event.stopPropagation();del('${d.id}')">🗑</button>
+        <span class="attach-info ${nf>0?'ai-some':'ai-none'}" style="margin-left:auto">${nf>0?'📎 '+nf+' arq.':'📎 sem arq.'} · ${nv} visit.</span>
+      </div>
+    </div>`
+  }).join('')
+}
+
+function openClient(id){
+  CUR = id;
+  goTo('dossie')
+}
+function del(id){
+  if(!confirm('Excluir esta proposta permanentemente?')) return
+  DB = DB.filter(x=>x.id!==id)
+  deleteFromDB(id)
+  renderClients()
+}
+
+/* ════════════════════════════
+   EDITOR
+════════════════════════════ */
+function tog(el){ el.classList.toggle('on') }
+function actPh(){ return Array.from(document.querySelectorAll('.ptog.on')).map(e=>e.dataset.ph) }
+function setAPh(phs){ document.querySelectorAll('.ptog').forEach(e=>e.classList.toggle('on',phs.includes(e.dataset.ph))) }
+
+function initParc(){
+  parcelas=[{pct:'30',mom:'Entrada',desc:'Assinatura do contrato'},{pct:'40',mom:'Entrega do Projeto Legal',desc:'Após entrega do projeto'},{pct:'30',mom:'Aprovação na Prefeitura',desc:'Após emissão do alvará'}]
+  renderParc()
+}
+function renderParc(){
+  g('parc-list').innerHTML=''
+  parcelas.forEach((p,i)=>{
+    const d=document.createElement('div'); d.className='parc-item'
+    d.innerHTML=`<div class="plbl">Parcela ${i+1}</div><button class="rm" onclick="rmParc(${i})">✕</button>
+    <div class="fg"><div class="fr"><label>%</label><input type="number" value="${p.pct}" min="0" max="100" onchange="parcelas[${i}].pct=this.value"></div>
+    <div class="fr"><label>Momento</label><input value="${p.mom}" onchange="parcelas[${i}].mom=this.value"></div></div>
+    <div class="fr"><label>Descrição</label><input value="${p.desc}" onchange="parcelas[${i}].desc=this.value"></div>`
+    g('parc-list').appendChild(d)
+  })
+}
+function addParc(){ parcelas.push({pct:'0',mom:'',desc:''}); renderParc() }
+function rmParc(i){ if(parcelas.length<=1){alert('Mantenha ao menos uma parcela.');return}; parcelas.splice(i,1); renderParc() }
+
+function collectParc(){
+  g('parc-list').querySelectorAll('.parc-item').forEach((it,i)=>{
+    const ins=it.querySelectorAll('input');
+    if(parcelas[i]) parcelas[i]={pct:ins[0].value,mom:ins[1].value,desc:ins[2].value}
+  })
+}
+
+function collectForm(){
+  collectParc()
+  return {
+    id: CUR||eid(),
+    fe:fv('fe'),fcrea:fv('fcrea'),ftel:fv('ftel'),femail:fv('femail'),
+    num:fv('fnum'),data:fv('fdata'),validade:fv('fval'),
+    cli:fv('fcli'),cpf:fv('fcpf'),ctel:fv('fctel'),
+    end:fv('fend'),ac:fv('fac'),at:fv('fat'),
+    phases:actPh(),
+    v1:fv('v1'),v2:fv('v2'),v3:fv('v3'),
+    v4am:fv('v4am'),v4av:fv('v4av'),v4ao:fv('v4ao'),
+    v4b:fv('v4b'),v4bo:fv('v4bo'),
+    parcelas:JSON.parse(JSON.stringify(parcelas)),
+    pz1:fv('pz1'),pz2:fv('pz2'),pz3:fv('pz3'),
+    obs:fv('fobs'),
+    status:'draft',notes:'',cl:{},visitas:[],files:{},
+    updatedAt:new Date().toISOString()
+  }
+}
+
+function loadForm(d){
+  g('fe').value=d.fe||'Daphne Ferreira'; g('fcrea').value=d.fcrea||''; g('ftel').value=d.ftel||''; g('femail').value=d.femail||''
+  g('fnum').value=d.num||''; g('fdata').value=d.data||''; g('fval').value=d.validade||'15 dias'
+  g('fcli').value=d.cli||''; g('fcpf').value=d.cpf||''; g('fctel').value=d.ctel||''
+  g('fend').value=d.end||''; g('fac').value=d.ac||''; g('fat').value=d.at||''
+  setAPh(d.phases||[])
+  g('v1').value=d.v1||'5500'; g('v2').value=d.v2||'3000'; g('v3').value=d.v3||'A ser definido'
+  g('v4am').value=d.v4am||'1000'; g('v4av').value=d.v4av||'350'; g('v4ao').value=d.v4ao||''
+  g('v4b').value=d.v4b||''; g('v4bo').value=d.v4bo||''
+  parcelas=d.parcelas?JSON.parse(JSON.stringify(d.parcelas)):[]
+  if(!parcelas.length) initParc(); else renderParc()
+  g('pz1').value=d.pz1||'Até 07 dias'; g('pz2').value=d.pz2||'15 a 25 dias'; g('pz3').value=d.pz3||'Conforme órgão público'
+  g('fobs').value=d.obs||''
+  g('docout').style.display='none'; g('prev-empty').style.display='flex'
+}
+
+function newProposal(){
+  CUR=null
+  g('ed-title').textContent='Nova Proposta'; g('ed-sub').textContent='Preencha os dados e selecione as fases'
+  g('fdata').valueAsDate=new Date()
+  document.querySelectorAll('.ptog').forEach(e=>e.classList.remove('on'))
+  'fe,fcrea,ftel,femail,fnum,fval,fcli,fcpf,fctel,fend,fac,fat,pz1,pz2,pz3,fobs'.split(',').forEach(id=>{ if(g(id)) g(id).value='' })
+  g('fe').value='Daphne Ferreira'; g('fac').value='~65 m²'; g('fat').value='275 m²'
+  g('fval').value='15 dias'; g('pz1').value='Até 07 dias'; g('pz2').value='15 a 25 dias'; g('pz3').value='Conforme órgão público'
+  g('v1').value='5500'; g('v2').value='3000'; g('v3').value='A ser definido'; g('v4am').value='1000'; g('v4av').value='350'
+  initParc()
+  goTo('editor')
+}
+
+function editar(id){
+  CUR=id; const d=DB.find(x=>x.id===id); if(!d) return
+  g('ed-title').textContent='Editar Proposta'; g('ed-sub').textContent=d.cli||''
+  loadForm(d); goTo('editor')
+}
+function editClient(){ editar(CUR) }
+
+async function salvar(){
+  if(!fv('fcli')){ alert('Informe o nome do cliente.'); return }
+  collectParc()
+  const d=collectForm()
+  const idx=DB.findIndex(x=>x.id===d.id)
+  if(idx>=0){
+    d.status=DB[idx].status||'draft'; d.notes=DB[idx].notes||''; d.cl=DB[idx].cl||{}
+    d.visitas=DB[idx].visitas||[]; d.files=DB[idx].files||{}
+    DB[idx]=d
+  } else { CUR=d.id; DB.unshift(d) }
+  await saveDB_client(d)
+  renderClients()
+  ;['dossie','checklist','visita'].forEach(n=>{ g('nt-'+n).style.display='' })
+  showToast('✅ Proposta salva na nuvem!')
+}
+
+function verPDF(id){
+  const d=DB.find(x=>x.id===id); if(!d) return
+  CUR=id; loadForm(d)
+  g('ed-title').textContent='Visualizar'; g('ed-sub').textContent=d.cli||''
+  goTo('editor'); gerarProp()
+}
+
+/* ════════════════════════════
+   GENERATE PROPOSAL DOC
+════════════════════════════ */
+const ALLPHS=[{id:'1',short:'Projeto\nArquitetônico'},{id:'2',short:'Planejamento\n+ Caixa'},{id:'3',short:'Complementares'},{id:'4a',short:'Acomp. Técnico\n(sem exec.)'},{id:'4b',short:'Acomp. c/\nResp. Técnica'}]
+const PHDEF={
+  '1':{lbl:'Fase 1',tit:'Projeto Arquitetônico + Aprovação Legal',inc:['Estudo preliminar com layout personalizado','Planta baixa conforme necessidades e viabilidade','Até 02 revisões inclusas','Elaboração do projeto legal','Protocolo e acompanhamento até aprovação']},
+  '2':{lbl:'Fase 2',tit:'Planejamento + Processo Caixa Econômica Federal',inc:['Orçamento da obra (referência SINAPI)','Planilha padrão Caixa Econômica Federal','Cronograma físico-financeiro','Adequação ao valor aprovado','Suporte técnico na análise de crédito']},
+  '3':{lbl:'Fase 3',tit:'Projetos Complementares',inc:['Projeto estrutural (profissional parceiro)','Projeto elétrico (profissional parceiro)','Projeto hidrossanitário (profissional parceiro)','Responsabilidade técnica individual por projeto']},
+  '4a':{lbl:'Fase 4 – Mod.1',tit:'Acompanhamento Técnico (sem responsabilidade de execução)',inc:['Visitas técnicas conforme plano contratado','Verificação da obra conforme projeto','Medições para liberação de parcelas da Caixa','Relatórios técnicos','Suporte durante vistorias'],exc:['Responsabilidade pela execução','Gerenciamento de obra','Contratação de mão de obra','Compras ou controle financeiro']},
+  '4b':{lbl:'Fase 4 – Mod.2',tit:'Acompanhamento com Responsabilidade Técnica de Execução',inc:['ART de execução','Acompanhamento periódico da obra','Orientação direta à equipe executora','Controle básico de qualidade','Medições para Caixa','Relatórios técnicos'],exc:['Administração financeira da obra','Compra de materiais','Contratação direta de equipe (salvo acordo)']}
+}
+
+function gerarProp(){
+  collectParc()
+  const active=actPh()
+  if(!active.length){alert('Selecione ao menos uma fase.');return}
+  const eng=fv('fe')||'Daphne Ferreira', crea=fv('fcrea')||'(inserir)'
+  const tel=fv('ftel'), email=fv('femail'), contato=[tel,email].filter(Boolean).join(' · ')||'–'
+  const num=fv('fnum'), dataS=fv('fdata'), val=fv('fval')||'15 dias'
+  const cli=fv('fcli')||'–', cpf=fv('fcpf')||'–', ctel=fv('fctel')||'–'
+  const end=fv('fend')||'–', ac=fv('fac')||'–', at=fv('fat')||'–', obs=fv('fobs')
+
+  let rm='<div class="roadmap">'
+  ALLPHS.forEach(p=>{ const on=active.includes(p.id); rm+=`<div class="rmst"><div class="rmd ${on?'a':'i'}">${p.id}</div><div class="rml ${on?'a':'i'}">${p.short.replace('\n','<br>')}</div></div>` })
+  rm+='</div>'
+
+  let scope='<div class="sgrid">'
+  ALLPHS.forEach(p=>{
+    const on=active.includes(p.id), pd=PHDEF[p.id]
+    if(!on){ scope+=`<div class="sc inact"><h4>${pd.lbl}</h4><ul><li style="color:var(--t4);font-style:italic">Não incluso nesta proposta</li></ul></div>`; return }
+    const exc=pd.exc?`<div style="margin-top:6px;padding-top:5px;border-top:1px solid #dca880"><div style="font-size:.6rem;font-weight:700;color:#8a4018;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">Não inclui</div><ul>${pd.exc.map(x=>`<li style="color:#7a3810">${x}</li>`).join('')}</ul></div>`:''
+    scope+=`<div class="sc${p.id.startsWith('4')?' warn':''}"><h4>${pd.lbl} — ${pd.tit}</h4><ul>${pd.inc.map(x=>`<li>${x}</li>`).join('')}</ul>${exc}</div>`
+  })
+  scope+='</div>'
+
+  let invRows='', total=0
+  active.forEach(pid=>{
+    const pd=PHDEF[pid]; let valH='', desc2=''
+    if(pid==='1'){const v=parseFloat(fv('v1'))||0;total+=v;valH=`<div class="va">${fmt(v)}</div>`}
+    else if(pid==='2'){const v=parseFloat(fv('v2'))||0;total+=v;valH=`<div class="va">${fmt(v)}</div>`}
+    else if(pid==='3'){valH=`<div class="va" style="color:var(--am)">${fv('v3')||'A definir'}</div>`}
+    else if(pid==='4a'){const m=parseFloat(fv('v4am'))||0,v=parseFloat(fv('v4av'))||0,ob=fv('v4ao');valH=`<div class="va">${fmt(m)}<span style="font-size:.62rem;color:var(--t3);font-weight:400">/mês</span></div><div style="font-size:.66rem;color:var(--t3)">${fmt(v)}/visita avulsa</div>`;desc2=`<div class="vd">Inclui: visita na obra · orientação técnica · medições Caixa · suporte${ob?' · '+ob:''}</div>`}
+    else if(pid==='4b'){const v=fv('v4b')||'A inserir',ob=fv('v4bo');valH=`<div class="va" style="color:var(--am)">${v}</div>`;if(ob)desc2=`<div class="vd">${ob}</div>`}
+    invRows+=`<tr><td class="vn">${pd.lbl}</td><td>${pd.tit}${desc2}</td><td style="text-align:right">${valH}</td></tr>`
+  })
+  const totalRow=total>0?`<tr class="trow"><td colspan="2"><strong>TOTAL</strong> ${[active.includes('1')&&'F1',active.includes('2')&&'F2'].filter(Boolean).join('+')}</td><td style="text-align:right" class="va">${fmt(total)}</td></tr>`:''
+  const payH=parcelas.map(p=>`<div class="paybox"><div class="paypct">${p.pct||'–'}%</div><div class="paymom">${p.mom||'–'}</div><div class="paydesc">${p.desc||''}</div></div>`).join('')
+  const OBS=['Aprovação condicionada à regularidade do terreno.','Cliente responsável pela documentação do imóvel.','Alterações após aprovação serão cobradas à parte.','Custos da obra podem variar conforme mercado.','Poderá ser necessário levantamento topográfico e/ou sondagem.','Serviços não previstos serão cobrados separadamente.']
+  const obsExtra=obs?`<li><strong>Obs.:</strong> ${obs}</li>`:''
+  const showPag=active.some(p=>['1','2'].includes(p)), showPz=active.includes('1')
+  const ndP=fv('fnum'), numStr=ndP?`Proposta nº ${ndP} &nbsp;·&nbsp; `:''
+  let sn=1
+
+  const html=`<div class="doc">
+  <div class="dh"><div class="dh-l"><h2>${eng}</h2><div class="dsub">CREA: ${crea} &nbsp;·&nbsp; ${contato}</div></div>
+  <div class="dh-r"><div class="dbadge">Proposta Técnica</div><div class="dmeta">${numStr}${fmtD(dataS)}<br>Minha Casa Minha Vida</div></div></div>
+  <div class="dstripe"></div>
+  <div class="dbody">
+    <div class="dcli">
+      <div class="dci full"><span class="dcil">Cliente</span><span class="dciv">${cli}</span></div>
+      <div class="dci"><span class="dcil">CPF / CNPJ</span><span class="dciv">${cpf}</span></div>
+      <div class="dci"><span class="dcil">Telefone</span><span class="dciv">${ctel}</span></div>
+      <div class="dci"><span class="dcil">Área construída</span><span class="dciv">${ac}</span></div>
+      <div class="dci full"><span class="dcil">Terreno / Endereço</span><span class="dciv">${end} &nbsp;·&nbsp; ${at}</span></div>
+    </div>
+    <div class="dsec"><div class="dstit"><span class="sn">${sn++}</span> Objetivo</div>
+    <p style="font-size:.78rem;line-height:1.7;color:var(--t2);padding:0 3px">Prestação de serviços técnicos especializados para desenvolvimento do projeto arquitetônico, aprovação legal junto aos órgãos competentes e assessoria técnica no processo de financiamento habitacional, conforme diretrizes do programa Minha Casa Minha Vida.</p></div>
+    <div class="dsec"><div class="dstit"><span class="sn">${sn++}</span> Fluxo do Processo</div>${rm}
+    <p style="font-size:.64rem;color:var(--t4);margin-top:4px"><strong style="color:var(--o2)">●</strong> Fases contratadas &nbsp;<strong style="color:var(--c4)">●</strong> Não incluídas nesta proposta</p></div>
+    <div class="dsec"><div class="dstit"><span class="sn">${sn++}</span> Escopo dos Serviços</div>${scope}</div>
+    <div class="dsec"><div class="dstit"><span class="sn">${sn++}</span> Investimento</div>
+    <table class="itbl"><thead><tr><th style="width:85px">Fase</th><th>Descrição</th><th style="width:130px;text-align:right">Valor</th></tr></thead>
+    <tbody>${invRows}${totalRow}</tbody></table></div>
+    ${showPag?`<div class="dsec"><div class="dstit"><span class="sn">${sn++}</span> Condições de Pagamento</div><div class="payrow">${payH}</div></div>`:''}
+    ${showPz?`<div class="dsec"><div class="dstit"><span class="sn">${sn++}</span> Prazos</div><div class="dlrow"><div class="dlb"><div class="dbl">Estudo Preliminar</div><div class="dbv">${fv('pz1')}</div></div><div class="dlb"><div class="dbl">Projeto Completo</div><div class="dbv">${fv('pz2')}</div></div><div class="dlb"><div class="dbl">Aprovação</div><div class="dbv">${fv('pz3')}</div></div></div></div>`:''}
+    <div class="dsec"><div class="dstit"><span class="sn">${sn++}</span> Considerações Importantes</div>
+    <div class="obsbox"><ul>${OBS.map(o=>`<li>${o}</li>`).join('')}${obsExtra}</ul></div></div>
+    <div class="valstrip">⏳ Validade: <strong>${val}</strong> a partir da emissão.</div>
+    <div class="dsec"><div class="dstit"><span class="sn">${sn++}</span> Aceite</div>
+    <p style="font-size:.72rem;color:var(--t3);margin-bottom:10px">Ao assinar, as partes declaram estar de acordo com os termos desta proposta.</p>
+    <div class="signgrid"><div class="signblk"><div class="signline"></div><div class="signname">${cli}</div><div class="signrole">Cliente &nbsp;·&nbsp; ${cpf}</div></div>
+    <div class="signblk"><div class="signline"></div><div class="signname">${eng}</div><div class="signrole">Engenheira Civil &nbsp;·&nbsp; CREA: ${crea}</div></div></div></div>
+  </div>
+  <div class="dfooter"><span>${eng} · CREA: ${crea}</span><span>Emitido em ${fmtD(dataS)}${ndP?' · Proposta nº '+ndP:''}</span></div>
+</div>`
+
+  g('prev-empty').style.display='none'
+  g('docout').style.display='block'
+  g('docout').innerHTML=html
+  g('docout').scrollIntoView({behavior:'smooth',block:'start'})
+}
+
+/* ════════════════════════════
+   DOSSIÊ
+════════════════════════════ */
+function renderDossie(){
+  const d=getClient(); if(!d) return
+  g('ds-title').textContent=d.cli||'(sem nome)'
+  g('ds-sub').textContent=(d.num?'Proposta nº '+d.num+' · ':'')+fmtD(d.data)+' · '+d.end
+  g('ds-status').value=d.status||'draft'
+  g('ds-notes').value=d.notes||''
+  // info
+  g('ds-info').innerHTML=`
+    <div class="irow"><strong>Engenheira:</strong><span>${d.fe||'–'} · CREA: ${d.fcrea||'–'}</span></div>
+    <div class="irow"><strong>CPF/CNPJ:</strong><span>${d.cpf||'–'}</span></div>
+    <div class="irow"><strong>Telefone:</strong><span>${d.ctel||'–'}</span></div>
+    <div class="irow"><strong>Terreno:</strong><span>${d.end||'–'}</span></div>
+    <div class="irow"><strong>Área:</strong><span>${d.ac||'–'} construção · terreno ${d.at||'–'}</span></div>
+    <div class="irow"><strong>Fases:</strong><span>${(d.phases||[]).map(p=>PHLBL[p]||p).join(', ')||'–'}</span></div>
+    <div class="irow"><strong>Validade:</strong><span>${d.validade||'15 dias'}</span></div>`
+  // checklist progress
+  let total=0,done=0
+  STAGES.forEach(st=>st.items.forEach((_,i)=>{ total++; if((d.cl||{})[`${st.id}_${i}`]==='1') done++ }))
+  const pct=total?Math.round(done/total*100):0
+  g('ds-clprog').textContent=`${done}/${total} (${pct}%)`
+  g('ds-clfill').style.width=pct+'%'
+  renderFMGR()
+}
+
+function saveDS(){
+  const d=getClient(); if(!d) return
+  d.status=g('ds-status').value; d.notes=g('ds-notes').value; d.updatedAt=new Date().toISOString()
+  saveDB_client(d); renderClients()
+}
+
+/* ════════════════════════════
+   FILE MANAGER
+════════════════════════════ */
+const FILE_CATS=[
+  {id:'contrato',lbl:'📝 Contrato Assinado'},
+  {id:'briefing',lbl:'📋 Briefing do Cliente'},
+  {id:'projeto',lbl:'📐 Projeto / Plantas'},
+  {id:'orcamento',lbl:'💰 Orçamento / Planilhas'},
+  {id:'documentos',lbl:'🪪 Documentos do Cliente'},
+  {id:'vistorias',lbl:'🔍 Relatórios de Visita'},
+  {id:'outros',lbl:'📎 Outros'},
+]
+
+function renderFMGR(){
+  const d=getClient(); if(!d) return
+  d.files=d.files||{}
+  let html=''
+  FILE_CATS.forEach(cat=>{
+    const files=(d.files[cat.id]||[])
+    html+=`<div class="fcat">
+      <div class="fcat-h"><h4>${cat.lbl}<span style="font-size:.6rem;color:var(--t4);font-weight:400;margin-left:6px">${files.length} arquivo(s)</span></h4>
+      <button class="btn btn-o btn-xs" onclick="openUpload('${cat.id}')">+ Adicionar</button></div>
+      <div class="flist" id="fl-${cat.id}">
+        ${files.length?files.map((f,i)=>`<div class="fitem" id="fi-${cat.id}-${i}">
+          <div class="fi-ico">${fileIcon(f.type)}</div>
+          <div class="fi-info"><div class="fi-name">${f.name}</div><div class="fi-meta">${f.size} · ${fmtD(f.addedAt?.split('T')[0])}</div></div>
+          <div class="fi-acts">
+            <button class="btn btn-bl btn-xs" onclick="viewFile('${cat.id}',${i})">👁 Ver</button>
+            <button class="btn btn-d btn-xs" onclick="delFile('${cat.id}',${i})">🗑</button>
+          </div>
+        </div>`).join(''):`<div class="upload-zone" onclick="openUpload('${cat.id}')" ondragover="ev.preventDefault()" ondrop="handleDrop(event,'${cat.id}')"><div class="uz-ico">📂</div><div class="uz-txt"><strong>Clique</strong> ou arraste arquivos aqui</div></div>`}
+      </div>
+    </div>`
+  })
+  g('fmgr').innerHTML=html
+}
+
+function fileIcon(type){
+  if(!type) return '📄'
+  if(type.includes('pdf')) return '📕'
+  if(type.includes('image')) return '🖼️'
+  if(type.includes('word')||type.includes('document')) return '📝'
+  if(type.includes('sheet')||type.includes('excel')) return '📊'
+  return '📄'
+}
+
+function openUpload(catId){ currentFileCategory=catId; g('file-in').click() }
+function handleFiles(e){ [...e.target.files].forEach(f=>addFile(currentFileCategory,f)); e.target.value='' }
+function handleDrop(e,catId){ e.preventDefault(); [...e.dataTransfer.files].forEach(f=>addFile(catId,f)) }
+
+function addFile(catId, file){
+  const d=getClient(); if(!d) return
+  d.files=d.files||{}; d.files[catId]=d.files[catId]||[]
+  const reader=new FileReader()
+  reader.onload=ev=>{
+    d.files[catId].push({name:file.name,size:fmtBytes(file.size),type:file.type,data:ev.target.result,addedAt:new Date().toISOString()})
+    saveDB_client(d); renderFMGR()
+  }
+  reader.readAsDataURL(file)
+}
+
+function viewFile(catId,idx){
+  const d=getClient(); const f=(d.files[catId]||[])[idx]; if(!f) return
+  const w=window.open(); w.document.write(`<iframe src="${f.data}" style="width:100%;height:100vh;border:0"></iframe>`)
+}
+function delFile(catId,idx){
+  if(!confirm('Remover este arquivo?')) return
+  const d=getClient(); d.files[catId].splice(idx,1); saveDB_client(d); renderFMGR()
+}
+
+/* ════════════════════════════
+   CHECKLIST
+════════════════════════════ */
+const STAGES=[
+  {id:1,title:'Qualificação e Início',items:['Receber formulário preenchido do cliente','Confirmar valor aprovado na Caixa','Confirmar existência de correspondente bancário','Verificar prazo desejado para início da obra','Enviar proposta comercial','Formalizar aceite / contrato']},
+  {id:2,title:'Documentação do Cliente e Terreno',items:['Matrícula atualizada do terreno',{t:'Verificar titularidade do terreno',warn:true},'Confirmar se terreno está quitado ou financiado','Solicitar documentos pessoais do cliente','Solicitar comprovante de renda','Solicitar comprovante de residência']},
+  {id:3,title:'Levantamento do Terreno',items:['Solicitar medidas do lote','Solicitar localização (Google Maps)','Solicitar fotos do terreno','Avaliar necessidade de topografia','Avaliar necessidade de sondagem (com estrutural)']},
+  {id:4,title:'Estudo Preliminar',items:['Definir implantação no terreno','Desenvolver planta inicial','Ajustar layout com cliente','Validar compatibilidade com orçamento','Aprovação do cliente (formal)']},
+  {id:5,title:'Projeto Legal',items:['Planta baixa final','Cortes','Fachadas','Implantação','Taxa de ocupação e recuos','Conferência conforme legislação municipal']},
+  {id:6,title:'Aprovação na Prefeitura',items:['Protocolo do projeto','Pagamento de taxas','Acompanhar exigências','Ajustar projeto se necessário','Obter alvará de construção']},
+  {id:7,title:'Projetos Complementares',items:['Projeto estrutural','Projeto elétrico','Projeto hidrossanitário','Compatibilização entre projetos']},
+  {id:8,title:'Documentação para Caixa',items:['Planilha orçamentária (SINAPI)','Cronograma físico-financeiro','Memorial descritivo','ART / RRT','Projeto aprovado pela prefeitura','Documentação do cliente organizada']},
+  {id:9,title:'Análise da Caixa',items:['Envio do processo completo','Acompanhar análise técnica','Atender pendências','Ajustes solicitados','Aprovação final do financiamento']},
+  {id:10,title:'Contrato e Início da Obra',items:['Assinatura do contrato','Registro em cartório','Emissão de ART de execução','Planejamento do início da obra']},
+  {id:11,title:'Execução e Medições',items:['Acompanhar início da obra','Conferir etapas executadas','Realizar visitas conforme medições','Validar etapas para liberação de recursos','Apoiar cliente em vistorias da Caixa']},
+  {id:12,title:'Finalização da Obra',items:['Solicitar habite-se','Regularização final do imóvel','Averbação da construção','Entrega técnica ao cliente']},
+  {id:'C',title:'⚠ Pontos Críticos — Atenção',crit:true,items:[{t:'Terreno não regularizado',warn:true},{t:'Cliente com documentação incompleta',warn:true},{t:'Projeto fora do orçamento aprovado',warn:true},{t:'Falta de acompanhamento nas medições',warn:true},{t:'Alterações durante a obra sem controle',warn:true}]}
+]
+
+function ck(stId,idx){ const d=getClient(); return (d?.cl||{})[`${stId}_${idx}`]==='1' }
+function cks(stId,field){ const d=getClient(); return (d?.cl||{})[`${stId}_${field}`]||'' }
+function saveCK(stId,idx,val){ const d=getClient(); if(!d) return; d.cl=d.cl||{}; d.cl[`${stId}_${idx}`]=val; saveDB_client(d); updateCLProg() }
+function saveCKS(stId,field,val){ const d=getClient(); if(!d) return; d.cl=d.cl||{}; d.cl[`${stId}_${field}`]=val; saveDB_client(d) }
+
+function updateCLProg(){
+  const d=getClient(); let total=0,done=0
+  STAGES.forEach(st=>st.items.forEach((_,i)=>{ total++; if((d?.cl||{})[`${st.id}_${i}`]==='1') done++ }))
+  const pct=total?Math.round(done/total*100):0
+  if(g('cl-count')) g('cl-count').textContent=`${done} / ${total}`
+  if(g('cl-fill')) g('cl-fill').style.width=pct+'%'
+  if(g('ds-clprog')) g('ds-clprog').textContent=`${done}/${total} (${pct}%)`
+  if(g('ds-clfill')) g('ds-clfill').style.width=pct+'%'
+  // update stage pills
+  STAGES.forEach(st=>{
+    const total2=st.items.length; let done2=0
+    st.items.forEach((_,i)=>{ if((d?.cl||{})[`${st.id}_${i}`]==='1') done2++ })
+    const pill=g(`pill-${st.id}`); if(!pill) return
+    if(done2===total2){pill.className='cl-spill pill-done';pill.textContent='✓ Concluída'}
+    else if(done2>0){pill.className='cl-spill pill-part';pill.textContent=`${done2}/${total2}`}
+    else{pill.className='cl-spill pill-pend';pill.textContent='Pendente'}
+  })
+}
+
+function renderChecklist(){
+  const d=getClient(); if(!d) return
+  g('cl-cli-name').textContent=d.cli||'–'
+  let total=0,done=0
+  STAGES.forEach(st=>st.items.forEach((_,i)=>{ total++; if((d.cl||{})[`${st.id}_${i}`]==='1') done++ }))
+  g('cl-count').textContent=`${done} / ${total}`
+  g('cl-fill').style.width=(total?Math.round(done/total*100):0)+'%'
+  const cont=g('cl-stages'); cont.innerHTML=''
+  STAGES.forEach(st=>{
+    const total2=st.items.length; let done2=0
+    st.items.forEach((_,i)=>{ if((d.cl||{})[`${st.id}_${i}`]==='1') done2++ })
+    let pillCls='cl-spill pill-pend', pillTxt='Pendente'
+    if(done2===total2){pillCls='cl-spill pill-done';pillTxt='✓ Concluída'}
+    else if(done2>0){pillCls='cl-spill pill-part';pillTxt=`${done2}/${total2}`}
+
+    const div=document.createElement('div')
+    div.className='cl-stage'+(st.crit?' crit-sec':'')
+    div.id='cls-'+st.id
+    div.innerHTML=`<div class="cl-sh" onclick="this.parentElement.classList.toggle('coll')">
+      <div class="cl-snum">${st.id}</div>
+      <div class="cl-stit">${st.title}</div>
+      <span class="cl-spill ${pillCls.replace('cl-spill ','')}" id="pill-${st.id}">${pillTxt}</span>
+      <span class="cl-chev">▼</span>
+    </div>
+    <div class="cl-body">
+      <div class="cl-meta">
+        <div class="cl-mf"><label>Status</label>
+          <select onchange="saveCKS(${JSON.stringify(st.id)},'status',this.value)">
+            <option ${cks(st.id,'status')===''?'selected':''}>—</option>
+            <option value="nao_iniciada" ${cks(st.id,'status')==='nao_iniciada'?'selected':''}>Não iniciada</option>
+            <option value="em_andamento" ${cks(st.id,'status')==='em_andamento'?'selected':''}>Em andamento</option>
+            <option value="aguardando" ${cks(st.id,'status')==='aguardando'?'selected':''}>Aguardando</option>
+            <option value="concluida" ${cks(st.id,'status')==='concluida'?'selected':''}>Concluída</option>
+          </select>
+        </div>
+        <div class="cl-mf"><label>Prazo</label><input type="date" value="${cks(st.id,'prazo')}" onchange="saveCKS(${JSON.stringify(st.id)},'prazo',this.value)"></div>
+        <div class="cl-mf"><label>Responsável</label><input type="text" value="${cks(st.id,'resp')}" placeholder="Nome…" onchange="saveCKS(${JSON.stringify(st.id)},'resp',this.value)"></div>
+        <div class="cl-mf obs"><label>Observação</label><input type="text" value="${cks(st.id,'obs')}" placeholder="Registro, pendência…" onchange="saveCKS(${JSON.stringify(st.id)},'obs',this.value)"></div>
+      </div>
+      <table class="itable">
+        <thead><tr><th></th><th>Item</th><th class="thp">Prazo</th><th>Observação</th></tr></thead>
+        <tbody>${st.items.map((item,i)=>{
+          const lbl=typeof item==='string'?item:item.t; const warn=typeof item==='object'&&item.warn
+          const chk=ck(st.id,i), ip=cks(st.id,i+'_prazo'), io=cks(st.id,i+'_obs')
+          return `<tr class="itr${chk?' done':''}${warn?' warn':''}${st.crit?' crit':''}" id="itr-${st.id}-${i}">
+            <td class="chkw"><input type="checkbox" ${chk?'checked':''} onchange="saveCK(${JSON.stringify(st.id)},${i},this.checked?'1':'0');this.closest('tr').classList.toggle('done',this.checked)"></td>
+            <td class="ilbl">${lbl}</td>
+            <td><input type="date" value="${ip}" onchange="saveCKS(${JSON.stringify(st.id)},'${i}_prazo',this.value)"></td>
+            <td><input type="text" value="${io}" placeholder="Nota…" onchange="saveCKS(${JSON.stringify(st.id)},'${i}_obs',this.value)"></td>
+          </tr>`
+        }).join('')}</tbody>
+      </table>
+    </div>`
+    cont.appendChild(div)
+  })
+}
+
+/* ════════════════════════════
+   VISITAS
+════════════════════════════ */
+const VF_CHECKS_DEF=[
+  'Fundação conforme projeto','Estrutura conforme projeto','Alvenaria conforme projeto',
+  'Cobertura / telhado','Instalações elétricas','Instalações hidráulicas',
+  'Revestimentos','Esquadrias','Acabamentos','Etapa apta para medição Caixa',
+  'Documentação da medição entregue','Pendências identificadas'
+]
+
+function renderVisitas(){
+  const d=getClient(); if(!d) return
+  g('vt-cli-name').textContent=d.cli||'–'
+  const visitas=d.visitas||[]
+  if(!visitas.length){ g('vf-list').innerHTML='<div class="empty">Nenhuma visita registrada ainda.</div>'; return }
+  g('vf-list').innerHTML=visitas.map((v,vi)=>{
+    const stlbl=v.resultado==='ok'?'✅ Aprovada':v.resultado==='pend'?'⏳ Pendências':v.resultado==='crit'?'🚨 Crítica':'🔍 Registrada'
+    const stcls=v.resultado==='ok'?'vfs-ok':v.resultado==='pend'?'vfs-pend':v.resultado==='crit'?'vfs-crit':'vfs-pend'
+    const checks=v.checks||{}
+    const photos=v.photos||[]
+    return `<div class="vf-card" id="vfc-${vi}">
+      <div class="vf-ch" onclick="toggleVF(${vi})">
+        <h4>Visita ${vi+1} — ${v.etapa||'–'}</h4>
+        <span class="vf-date">${fmtD(v.data)}</span>
+        <span class="vf-status ${stcls}">${stlbl}</span>
+        <span style="font-size:.7rem;color:var(--t4);margin-left:6px">▼</span>
+      </div>
+      <div class="vf-body" id="vfb-${vi}" style="display:none">
+        <div class="vf-grid">
+          <div class="vf-field"><label>Data da Visita</label><input type="date" value="${v.data||''}" onchange="saveVF(${vi},'data',this.value)"></div>
+          <div class="vf-field"><label>Etapa / Medição</label><input type="text" value="${v.etapa||''}" placeholder="Ex: Fundação, Estrutura…" onchange="saveVF(${vi},'etapa',this.value)"></div>
+          <div class="vf-field"><label>Resultado</label>
+            <select onchange="saveVF(${vi},'resultado',this.value)">
+              <option value="" ${!v.resultado?'selected':''}>— Selecione —</option>
+              <option value="ok" ${v.resultado==='ok'?'selected':''}>✅ Aprovada / Apta medição</option>
+              <option value="pend" ${v.resultado==='pend'?'selected':''}>⏳ Com pendências</option>
+              <option value="crit" ${v.resultado==='crit'?'selected':''}>🚨 Situação crítica</option>
+            </select>
+          </div>
+          <div class="vf-field half"><label>Observações gerais</label><textarea onchange="saveVF(${vi},'obs',this.value)" placeholder="Relato da visita…">${v.obs||''}</textarea></div>
+          <div class="vf-field"><label>Medição Caixa Nº</label><input type="text" value="${v.medicao||''}" placeholder="Ex: 1ª medição" onchange="saveVF(${vi},'medicao',this.value)"></div>
+          <div class="vf-field full"><label>Pendências / Não conformidades</label><textarea onchange="saveVF(${vi},'pendencias',this.value)" placeholder="Liste as pendências encontradas…">${v.pendencias||''}</textarea></div>
+          <div class="vf-field full"><label>Recomendações técnicas</label><textarea onchange="saveVF(${vi},'recomendacoes',this.value)" placeholder="Orientações para a equipe…">${v.recomendacoes||''}</textarea></div>
+        </div>
+        <div style="margin-bottom:10px"><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.09em;color:var(--o3);font-weight:700;margin-bottom:7px">Itens Verificados</div>
+        <div class="vf-checks">${VF_CHECKS_DEF.map((c,ci)=>`<label class="vf-check ${checks[ci]?'checked':''}"><input type="checkbox" ${checks[ci]?'checked':''} onchange="saveVFCheck(${vi},${ci},this.checked)"><span>${c}</span></label>`).join('')}</div></div>
+        <div><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.09em;color:var(--o3);font-weight:700;margin-bottom:7px">Fotos da Visita <span style="font-weight:400;color:var(--t4)">(${photos.length})</span></div>
+        <div class="vf-photos" id="vfph-${vi}">
+          ${photos.map((p,pi)=>`<div class="vf-photo"><img src="${p.data}"><button class="del" onclick="delPhoto(${vi},${pi})">✕</button></div>`).join('')}
+          <div class="add-photo-btn" onclick="addPhoto(${vi})"><span style="font-size:1.2rem">📷</span><span>Adicionar</span></div>
+        </div></div>
+        <div style="margin-top:12px;display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn btn-p btn-sm" onclick="abrirRelatorio(${vi})">📄 Ver Relatório / PDF</button>
+          <button class="btn btn-o btn-sm" onclick="saveVFToFiles(${vi})">💾 Salvar em Arquivos</button>
+          <button class="btn btn-d btn-sm" onclick="delVisita(${vi})">🗑 Excluir visita</button>
+        </div>
+      </div>
+    </div>`
+  }).join('')
+}
+
+function toggleVF(vi){ const b=g('vfb-'+vi); b.style.display=b.style.display==='none'?'block':'none' }
+
+function novaVisita(){
+  const d=getClient(); if(!d) return
+  d.visitas=d.visitas||[]
+  d.visitas.unshift({id:eid(),data:new Date().toISOString().split('T')[0],etapa:'',resultado:'',obs:'',pendencias:'',recomendacoes:'',medicao:'',checks:{},photos:[]})
+  saveDB_client(d); renderVisitas()
+  setTimeout(()=>toggleVF(0),80)
+}
+
+function saveVF(vi,field,val){
+  const d=getClient(); if(!d||!d.visitas[vi]) return
+  d.visitas[vi][field]=val; saveDB_client(d)
+  renderVisitas()
+}
+
+function saveVFCheck(vi,ci,val){
+  const d=getClient(); if(!d||!d.visitas[vi]) return
+  d.visitas[vi].checks=d.visitas[vi].checks||{}
+  d.visitas[vi].checks[ci]=val; saveDB_client(d)
+}
+
+function delVisita(vi){
+  if(!confirm('Excluir esta visita?')) return
+  const d=getClient(); d.visitas.splice(vi,1); saveDB_client(d); renderVisitas()
+}
+
+function addPhoto(vi){ currentPhotoVisitId=vi; g('photo-in').click() }
+function handlePhoto(e){
+  const file=e.target.files[0]; if(!file) return; const vi=currentPhotoVisitId
+  const reader=new FileReader()
+  reader.onload=ev=>{
+    const d=getClient(); d.visitas[vi].photos=d.visitas[vi].photos||[]
+    d.visitas[vi].photos.push({data:ev.target.result,name:file.name}); saveDB_client(d); renderVisitas()
+    setTimeout(()=>{ g('vfb-'+vi).style.display='block' },50)
+  }
+  reader.readAsDataURL(file); e.target.value=''
+}
+function delPhoto(vi,pi){
+  const d=getClient(); d.visitas[vi].photos.splice(pi,1); saveDB_client(d); renderVisitas()
+  setTimeout(()=>{ g('vfb-'+vi).style.display='block' },50)
+}
+
+function saveVFToFiles(vi){
+  const d=getClient(); if(!d) return
+  const v=d.visitas[vi]
+  const htmlContent = buildRelatorioHTML(d, v, vi)
+  d.files=d.files||{}; d.files['vistorias']=d.files['vistorias']||[]
+  const name=`Relatório Visita ${vi+1} - ${v.etapa||'visita'} - ${fmtD(v.data)}.html`
+  const blob=new Blob([htmlContent],{type:'text/html'})
+  const fr=new FileReader()
+  fr.onload=ev=>{
+    d.files['vistorias'].push({name,size:fmtBytes(blob.size),type:'text/html',data:ev.target.result,addedAt:new Date().toISOString()})
+    saveDB_client(d)
+    showToast('💾 Relatório salvo em Arquivos!')
+  }
+  fr.readAsDataURL(blob)
+}
+
+function abrirRelatorio(vi){
+  const d=getClient(); if(!d) return
+  const v=d.visitas[vi]
+  const html=buildRelatorioHTML(d,v,vi)
+  // show modal
+  g('rel-modal-body').innerHTML=''
+  const iframe=document.createElement('iframe')
+  iframe.style.cssText='width:100%;height:100%;border:none;display:block'
+  g('rel-modal-body').appendChild(iframe)
+  g('rel-modal').style.display='flex'
+  iframe.contentDocument.open()
+  iframe.contentDocument.write(html)
+  iframe.contentDocument.close()
+  // store vi for print
+  g('rel-modal').dataset.vi=vi
+}
+
+function fecharRelatorio(){ g('rel-modal').style.display='none' }
+
+function imprimirRelatorio(){
+  const iframe=g('rel-modal-body').querySelector('iframe')
+  if(iframe) iframe.contentWindow.print()
+}
+
+function buildRelatorioHTML(d, v, vi){
+  const checks=v.checks||{}, photos=v.photos||[]
+  const resLbl=v.resultado==='ok'?'✅ APROVADA / APTA PARA MEDIÇÃO':v.resultado==='pend'?'⏳ COM PENDÊNCIAS':v.resultado==='crit'?'🚨 SITUAÇÃO CRÍTICA':'🔍 REGISTRADA'
+  const resColor=v.resultado==='ok'?'#1a6030':v.resultado==='pend'?'#7a5000':v.resultado==='crit'?'#7a2010':'#3a3020'
+  const resBg=v.resultado==='ok'?'#d8f0d0':v.resultado==='pend'?'#fdecc0':v.resultado==='crit'?'#fdd0c0':'#e8e0c8'
+  const checkedItems=VF_CHECKS_DEF.filter((_,ci)=>checks[ci])
+  const uncheckedItems=VF_CHECKS_DEF.filter((_,ci)=>!checks[ci])
+  const photosHTML=photos.map((p,pi)=>`<div style="width:180px;flex-shrink:0"><img src="${p.data}" style="width:100%;height:130px;object-fit:cover;border-radius:5px;border:1px solid #d0c8a8"><div style="font-size:10px;color:#6a5e30;margin-top:3px;text-align:center">Foto ${pi+1}</div></div>`).join('')
+
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<title>Relatório de Visita — ${d.cli||''}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Jost',sans-serif;background:#f0e9d4;color:#18160a;padding:0}
+.doc{max-width:800px;margin:0 auto;background:#fff;box-shadow:0 4px 32px rgba(0,0,0,.15)}
+.dh{background:#2b3610;padding:22px 28px 16px;display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.dh h1{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:#faf6eb;font-weight:700;letter-spacing:.02em}
+.dh .dsub{font-size:.65rem;color:#c8de88;margin-top:3px;letter-spacing:.07em}
+.dh-r{text-align:right}
+.dbadge{background:#556c22;color:#fff;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:3px;display:inline-block;margin-bottom:4px}
+.dmeta{font-size:.65rem;color:#e0ecb8;line-height:1.9}
+.stripe{height:4px;background:linear-gradient(90deg,#556c22,#aac855,#e0ecb8,#aac855,#556c22)}
+.body{padding:20px 28px}
+.res-block{border-radius:6px;padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.res-label{font-size:.95rem;font-weight:700;letter-spacing:.02em}
+.sec{margin-bottom:16px}
+.sec-title{font-family:'Cormorant Garamond',serif;font-size:.88rem;font-weight:700;color:#faf6eb;background:#3e5018;padding:5px 12px;border-radius:4px;margin-bottom:8px;letter-spacing:.04em}
+.info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 16px;margin-bottom:14px}
+.info-card{background:#f2f8e0;border:1px solid #e0d0b0;border-radius:5px;padding:8px 12px}
+.info-lbl{font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:#556c22;font-weight:700;margin-bottom:2px}
+.info-val{font-size:.82rem;font-weight:600;color:#18160a}
+.text-box{background:#faf6eb;border:1px solid #e0d0b0;border-radius:5px;padding:10px 14px;font-size:.8rem;color:#38320e;line-height:1.7;white-space:pre-wrap}
+.text-box.empty{color:#9a8e60;font-style:italic}
+.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.check-item{display:flex;align-items:center;gap:7px;padding:5px 9px;border-radius:4px;font-size:.76rem}
+.check-ok{background:#e8f5e0;color:#1a5010}
+.check-no{background:#f8f0e8;color:#9a8060}
+.check-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-ok{background:#3a8030}
+.dot-no{background:#c8b880}
+.photos-wrap{display:flex;gap:10px;flex-wrap:wrap}
+.sign-row{display:grid;grid-template-columns:1fr 1fr;gap:40px;padding-top:12px;border-top:1px solid #e0d0b0;margin-top:8px}
+.sign-blk{text-align:center}
+.sign-line{border-top:1.5px solid #18160a;margin:40px 12px 5px}
+.sign-name{font-size:.78rem;font-weight:600}
+.sign-role{font-size:.65rem;color:#6a5e30;margin-top:1px}
+.footer{padding:8px 28px;background:#2b3610;display:flex;justify-content:space-between;font-size:.62rem;color:#c8de88;margin-top:14px}
+@media print{body{background:#fff}.doc{box-shadow:none;max-width:100%}@page{size:A4;margin:10mm 12mm}}
+</style></head><body>
+<div class="doc">
+  <div class="dh">
+    <div><h1>Relatório de Visita Técnica</h1><div class="dsub">Minha Casa Minha Vida · Daphne Ferreira Engenharia</div></div>
+    <div class="dh-r"><div class="dbadge">Visita ${vi+1}</div><div class="dmeta">${fmtD(v.data)}<br>${d.fe||'Daphne Ferreira'} · CREA: ${d.fcrea||'–'}</div></div>
+  </div>
+  <div class="stripe"></div>
+  <div class="body">
+
+    <div class="res-block" style="background:${resBg};border:1px solid ${resColor}30">
+      <div style="font-size:1.4rem">${v.resultado==='ok'?'✅':v.resultado==='pend'?'⏳':v.resultado==='crit'?'🚨':'🔍'}</div>
+      <div><div class="res-label" style="color:${resColor}">${resLbl}</div>
+      <div style="font-size:.68rem;color:${resColor};opacity:.8;margin-top:2px">Resultado da visita técnica</div></div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card"><div class="info-lbl">Cliente</div><div class="info-val">${d.cli||'–'}</div></div>
+      <div class="info-card"><div class="info-lbl">Empreendimento</div><div class="info-val">${d.end||'–'}</div></div>
+      <div class="info-card"><div class="info-lbl">Área</div><div class="info-val">${d.ac||'–'} · ${d.at||'–'}</div></div>
+      <div class="info-card"><div class="info-lbl">Etapa / Fase</div><div class="info-val">${v.etapa||'–'}</div></div>
+      <div class="info-card"><div class="info-lbl">Medição Caixa</div><div class="info-val">${v.medicao||'–'}</div></div>
+      <div class="info-card"><div class="info-lbl">Data da Visita</div><div class="info-val">${fmtD(v.data)}</div></div>
+    </div>
+
+    ${v.obs?`<div class="sec"><div class="sec-title">Observações Gerais</div><div class="text-box">${v.obs}</div></div>`:''}
+
+    ${v.pendencias?`<div class="sec"><div class="sec-title" style="background:#6a2808">Pendências / Não Conformidades</div><div class="text-box" style="border-color:#e0b090;background:#fff8f0">${v.pendencias}</div></div>`:''}
+
+    ${v.recomendacoes?`<div class="sec"><div class="sec-title" style="background:#1a3060">Recomendações Técnicas</div><div class="text-box" style="border-color:#b0c0e0;background:#f0f4fc">${v.recomendacoes}</div></div>`:''}
+
+    <div class="sec"><div class="sec-title">Itens Verificados</div>
+    <div class="check-grid">
+      ${VF_CHECKS_DEF.map((c,ci)=>`<div class="check-item ${checks[ci]?'check-ok':'check-no'}"><div class="check-dot ${checks[ci]?'dot-ok':'dot-no'}"></div>${c}</div>`).join('')}
+    </div></div>
+
+    ${photos.length?`<div class="sec"><div class="sec-title">Registro Fotográfico <span style="font-size:.7rem;font-weight:400">(${photos.length} foto${photos.length>1?'s':''})</span></div><div class="photos-wrap">${photosHTML}</div></div>`:''}
+
+    <div class="sec"><div class="sign-row">
+      <div class="sign-blk"><div class="sign-line"></div><div class="sign-name">${d.cli||'–'}</div><div class="sign-role">Proprietário / Cliente</div></div>
+      <div class="sign-blk"><div class="sign-line"></div><div class="sign-name">${d.fe||'Daphne Ferreira'}</div><div class="sign-role">Engenheira Civil · CREA: ${d.fcrea||'–'}</div></div>
+    </div></div>
+
+  </div>
+  <div class="footer"><span>${d.fe||'Daphne Ferreira'} · CREA: ${d.fcrea||'–'}</span><span>Relatório emitido em ${new Date().toLocaleDateString('pt-BR')}</span></div>
+</div>
+</body></html>`
+}
+
+/* ════════════════════════════
+   LEGACY INIT (no-op now — _initApp handles startup)
+════════════════════════════ */
+// App starts via onAuthStateChanged → _initApp()
+</script>
+</div><!-- /app-root -->
+</body>
+</html>
